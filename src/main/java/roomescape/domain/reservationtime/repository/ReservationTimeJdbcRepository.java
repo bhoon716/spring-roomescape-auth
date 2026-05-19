@@ -107,7 +107,7 @@ public class ReservationTimeJdbcRepository implements ReservationTimeRepository 
         Number key = simpleJdbcInsert.executeAndReturnKey(parameters);
         Long generatedId = key.longValue();
 
-        return reservationTime.assignId(generatedId);
+        return ReservationTime.of(generatedId, reservationTime.getStartAt());
     }
 
     @Override

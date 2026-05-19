@@ -27,21 +27,6 @@ public class Theme {
         return new Theme(id, name, description, thumbnailUrl);
     }
 
-    public Theme assignId(Long id) {
-        validateAssignableId(id);
-        return new Theme(id, this.name, this.description, this.thumbnailUrl);
-    }
-
-    private void validateAssignableId(Long id) {
-        if (id != null && id <= 0) {
-            throw new IllegalArgumentException("id는 양수여야 합니다.");
-        }
-
-        if (this.id != null) {
-            throw new IllegalStateException("이미 id가 할당된 테마입니다.");
-        }
-    }
-
     public Theme update(String name, String description, String thumbnailUrl) {
         return new Theme(this.id, name, description, thumbnailUrl);
     }

@@ -22,21 +22,6 @@ public class ReservationTime {
         return new ReservationTime(id, startAt);
     }
 
-    public ReservationTime assignId(Long id) {
-        validateAssignableId(id);
-        return new ReservationTime(id, this.startAt);
-    }
-
-    private void validateAssignableId(Long id) {
-        if (id != null && id <= 0) {
-            throw new IllegalArgumentException("id는 양수여야 합니다.");
-        }
-
-        if (this.id != null) {
-            throw new IllegalStateException("이미 id가 할당된 예약 시간입니다.");
-        }
-    }
-
     public ReservationTime update(LocalTime startAt) {
         return new ReservationTime(this.id, startAt);
     }
