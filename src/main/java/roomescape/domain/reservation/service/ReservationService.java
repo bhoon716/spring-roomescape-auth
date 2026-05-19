@@ -5,12 +5,14 @@ import java.time.LocalDate;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import roomescape.common.auth.LoginMember;
 import roomescape.common.exception.BusinessException;
 import roomescape.domain.reservation.entity.Reservation;
 import roomescape.domain.reservation.exception.ReservationErrorCode;
 import roomescape.domain.reservation.repository.ReservationRepository;
-import roomescape.domain.reservation.request.ReservationCreateRequest;
+import roomescape.domain.reservation.request.AdminReservationCreateRequest;
 import roomescape.domain.reservation.request.ReservationUpdateRequest;
+import roomescape.domain.reservation.request.UserReservationCreateRequest;
 import roomescape.domain.reservation.response.ReservationResponse;
 import roomescape.domain.reservation.response.ReservationsResponse;
 import roomescape.domain.reservationtime.entity.ReservationTime;
@@ -49,8 +51,8 @@ public class ReservationService {
         return new ReservationsResponse(reservations);
     }
 
-    public ReservationsResponse findMyReservations(String username) {
-        List<ReservationResponse> reservations = reservationRepository.findAllByUsername(username).stream()
+    public ReservationsResponse findMyReservations(LoginMember loginMember) {
+        List<ReservationResponse> reservations = reservationRepository.findAllByUsername(loginMember.username()).stream()
                 .map(ReservationResponse::from)
                 .toList();
 
@@ -58,21 +60,20 @@ public class ReservationService {
     }
 
     @Transactional
-    public ReservationResponse saveReservationByUser(ReservationCreateRequest request) {
+    public ReservationResponse saveReservationByUser(UserReservationCreateRequest request, LoginMember loginMember) {
         ReservationTime time = findTimeByIdOrThrow(request.timeId());
         Theme theme = findThemeByIdOrThrow(request.themeId());
 
-        Reservation reservation = Reservation.createByUser(request.username(), theme, request.date(), time, clock);
-
         validateDuplicateReservation(request.themeId(), request.date(), request.timeId());
 
+        Reservation reservation = Reservation.createByUser(loginMember.username(), theme, request.date(), time, clock);
         Reservation savedReservation = reservationRepository.save(reservation);
 
         return ReservationResponse.from(savedReservation);
     }
 
     @Transactional
-    public ReservationResponse saveReservationByAdmin(ReservationCreateRequest request) {
+    public ReservationResponse saveReservationByAdmin(AdminReservationCreateRequest request) {
         ReservationTime time = findTimeByIdOrThrow(request.timeId());
         Theme theme = findThemeByIdOrThrow(request.themeId());
 
@@ -85,16 +86,19 @@ public class ReservationService {
     }
 
     @Transactional
-    public ReservationResponse updateReservationByUser(Long id, ReservationUpdateRequest request) {
+    public ReservationResponse updateReservationByUser(
+            Long reservationId,
+            ReservationUpdateRequest request,
+            LoginMember loginMember
+    ) {
         ReservationTime newTime = findTimeByIdOrThrow(request.timeId());
-        Reservation reservation = findReservationByIdOrThrow(id);
+        Reservation reservation = findReservationByIdUsernameOrThrow(reservationId, loginMember.username());
         Theme newTheme = findThemeByIdOrThrow(request.themeId());
 
+        validateDuplicateReservationForUpdate(request.themeId(), request.date(), request.timeId(), reservationId);
+
         Reservation updatedReservation = reservation.updateByUser(newTheme, request.date(), newTime, clock);
-
-        validateDuplicateReservationForUpdate(request.themeId(), request.date(), request.timeId(), id);
-
-        reservationRepository.update(id, updatedReservation);
+        reservationRepository.update(reservationId, updatedReservation);
 
         return ReservationResponse.from(updatedReservation);
     }
@@ -114,8 +118,8 @@ public class ReservationService {
     }
 
     @Transactional
-    public void deleteReservationByUser(Long id) {
-        Reservation reservation = findReservationByIdOrThrow(id);
+    public void deleteReservationByUser(Long id, LoginMember loginMember) {
+        Reservation reservation = findReservationByIdUsernameOrThrow(id, loginMember.username());
         reservation.validateIsNotInPast(clock);
 
         deleteByIdOrThrow(id);
@@ -140,6 +144,11 @@ public class ReservationService {
 
     private Reservation findReservationByIdOrThrow(Long id) {
         return reservationRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(ReservationErrorCode.RESERVATION_NOT_FOUND));
+    }
+
+    private Reservation findReservationByIdUsernameOrThrow(Long reservationId, String username) {
+        return reservationRepository.findByIdAndUsername(reservationId, username)
                 .orElseThrow(() -> new BusinessException(ReservationErrorCode.RESERVATION_NOT_FOUND));
     }
 

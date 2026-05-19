@@ -11,8 +11,11 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import roomescape.domain.reservation.request.ReservationCreateRequest;
+import roomescape.common.auth.LoginMember;
+import roomescape.common.auth.LoginRequired;
+import roomescape.common.auth.LoginUser;
 import roomescape.domain.reservation.request.ReservationUpdateRequest;
+import roomescape.domain.reservation.request.UserReservationCreateRequest;
 import roomescape.domain.reservation.response.ReservationResponse;
 import roomescape.domain.reservation.response.ReservationsResponse;
 import roomescape.domain.reservation.service.ReservationService;
@@ -27,33 +30,44 @@ public class ReservationController {
         this.reservationService = reservationService;
     }
 
-    @GetMapping("/me/{name}")
+    @LoginRequired
+    @GetMapping("/me")
     public ResponseEntity<ReservationsResponse> getMyReservations(
-            @PathVariable String name
+            @LoginUser LoginMember loginMember
     ) {
-        ReservationsResponse response = reservationService.findMyReservations(name);
+        ReservationsResponse response = reservationService.findMyReservations(loginMember);
         return ResponseEntity.ok(response);
     }
 
+    @LoginRequired
     @PostMapping
-    public ResponseEntity<ReservationResponse> save(@RequestBody @Valid ReservationCreateRequest request) {
-        ReservationResponse response = reservationService.saveReservationByUser(request);
+    public ResponseEntity<ReservationResponse> save(
+            @RequestBody @Valid UserReservationCreateRequest request,
+            @LoginUser LoginMember loginMember
+    ) {
+        ReservationResponse response = reservationService.saveReservationByUser(request, loginMember);
         return ResponseEntity.created(URI.create("/reservations/" + response.id()))
                 .body(response);
     }
 
+    @LoginRequired
     @PatchMapping("/{reservationId}")
     public ResponseEntity<ReservationResponse> update(
             @PathVariable Long reservationId,
-            @RequestBody @Valid ReservationUpdateRequest request
+            @RequestBody @Valid ReservationUpdateRequest request,
+            @LoginUser LoginMember loginMember
     ) {
-        ReservationResponse response = reservationService.updateReservationByUser(reservationId, request);
+        ReservationResponse response = reservationService.updateReservationByUser(reservationId, request, loginMember);
         return ResponseEntity.ok(response);
     }
 
+    @LoginRequired
     @DeleteMapping("/{reservationId}")
-    public ResponseEntity<Void> deleteById(@PathVariable Long reservationId) {
-        reservationService.deleteReservationByUser(reservationId);
+    public ResponseEntity<Void> deleteById(
+            @PathVariable Long reservationId,
+            @LoginUser LoginMember loginMember
+    ) {
+        reservationService.deleteReservationByUser(reservationId, loginMember);
         return ResponseEntity.noContent().build();
     }
 }

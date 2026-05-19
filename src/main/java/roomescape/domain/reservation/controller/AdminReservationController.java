@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import roomescape.domain.reservation.request.ReservationCreateRequest;
+import roomescape.domain.reservation.request.AdminReservationCreateRequest;
 import roomescape.domain.reservation.request.ReservationUpdateRequest;
 import roomescape.domain.reservation.response.ReservationResponse;
 import roomescape.domain.reservation.response.ReservationsResponse;
@@ -34,7 +34,7 @@ public class AdminReservationController {
     }
 
     @PostMapping
-    public ResponseEntity<ReservationResponse> save(@RequestBody @Valid ReservationCreateRequest request) {
+    public ResponseEntity<ReservationResponse> save(@RequestBody @Valid AdminReservationCreateRequest request) {
         ReservationResponse response = reservationService.saveReservationByAdmin(request);
         return ResponseEntity.created(URI.create("/reservations/" + response.id()))
                 .body(response);
