@@ -1,0 +1,34 @@
+CREATE TABLE reservation_time
+(
+    id       BIGINT NOT NULL AUTO_INCREMENT,
+    start_at TIME   NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT uk_reservation_time_start_at UNIQUE (start_at)
+);
+
+CREATE TABLE theme
+(
+    id            BIGINT       NOT NULL AUTO_INCREMENT,
+    name          VARCHAR(255) NOT NULL,
+    description   VARCHAR(255) NOT NULL,
+    thumbnail_url VARCHAR(255) NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT uk_theme_name UNIQUE (name)
+);
+
+CREATE TABLE reservation
+(
+    id       BIGINT       NOT NULL AUTO_INCREMENT,
+    username VARCHAR(255) NOT NULL,
+    theme_id BIGINT       NOT NULL,
+    date     DATE         NOT NULL,
+    time_id  BIGINT       NOT NULL,
+    PRIMARY KEY (id),
+    FOREIGN KEY (time_id) REFERENCES reservation_time (id)
+        ON DELETE RESTRICT
+        ON UPDATE RESTRICT,
+    FOREIGN KEY (theme_id) REFERENCES theme (id)
+        ON DELETE RESTRICT
+        ON UPDATE RESTRICT,
+    CONSTRAINT uk_reservation_slot UNIQUE (theme_id, date, time_id)
+);
