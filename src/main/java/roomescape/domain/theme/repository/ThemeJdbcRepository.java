@@ -188,10 +188,10 @@ public class ThemeJdbcRepository implements ThemeRepository {
 
     @Override
     public Theme save(Theme theme) {
-         SqlParameterSource parameters = new MapSqlParameterSource()
-                 .addValue("name", theme.getName())
-                 .addValue("description", theme.getDescription())
-                 .addValue("thumbnail_url", theme.getThumbnailUrl());
+        SqlParameterSource parameters = new MapSqlParameterSource()
+                .addValue("name", theme.getName())
+                .addValue("description", theme.getDescription())
+                .addValue("thumbnail_url", theme.getThumbnailUrl());
 
         Number key = simpleJdbcInsert.executeAndReturnKey(parameters);
         return theme.assignId(key.longValue());
