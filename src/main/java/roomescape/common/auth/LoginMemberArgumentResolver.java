@@ -13,14 +13,14 @@ import roomescape.common.exception.BusinessException;
 import roomescape.common.exception.CommonErrorCode;
 
 @Component
-public class LoginRequiredArgumentResolver implements HandlerMethodArgumentResolver {
+public class LoginMemberArgumentResolver implements HandlerMethodArgumentResolver {
 
     @Override
     public boolean supportsParameter(MethodParameter parameter) {
-        boolean hasLoginRequired = parameter.hasParameterAnnotation(LoginRequired.class);
-        boolean isLoginUserType = LoginUser.class.isAssignableFrom(parameter.getParameterType());
+        boolean hasLoginUserAnnotation = parameter.hasParameterAnnotation(LoginUser.class);
+        boolean isLoginMemberType = LoginMember.class.isAssignableFrom(parameter.getParameterType());
 
-        return hasLoginRequired && isLoginUserType;
+        return hasLoginUserAnnotation && isLoginMemberType;
     }
 
     @Override
@@ -42,12 +42,12 @@ public class LoginRequiredArgumentResolver implements HandlerMethodArgumentResol
             throw new BusinessException(CommonErrorCode.UNAUTHORIZED);
         }
 
-        Object attribute = session.getAttribute(LoginUser.SESSION_NAME);
+        Object attribute = session.getAttribute(LoginMember.SESSION_NAME);
 
-        if (!(attribute instanceof LoginUser loginUser)) {
+        if (!(attribute instanceof LoginMember loginMember)) {
             throw new BusinessException(CommonErrorCode.UNAUTHORIZED);
         }
 
-        return loginUser;
+        return loginMember;
     }
 }
