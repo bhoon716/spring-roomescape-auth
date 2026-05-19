@@ -5,6 +5,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Base64;
+import java.util.regex.Pattern;
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 import org.springframework.stereotype.Component;
@@ -23,7 +24,7 @@ public class PasswordEncoder {
 
     public String encode(String rawPassword) {
         if (rawPassword == null || rawPassword.isBlank()) {
-            throw new IllegalStateException("");
+            throw new IllegalStateException("암호화할 비밀번호는 공백일 수 없습니다.");
         }
         byte[] salt = generateSalt();
         byte[] hash = hash(rawPassword, salt, ITERATIONS, KEY_LENGTH);
@@ -33,12 +34,11 @@ public class PasswordEncoder {
                 ALGORITHM,
                 String.valueOf(ITERATIONS),
                 encodeBase64(salt),
-                encodeBase64(hash)
-        );
+                encodeBase64(hash));
     }
 
     public boolean matches(String rawPassword, String encodedPassword) {
-        String[] parts = encodedPassword.split("\\" + DELIMITER);
+        String[] parts = encodedPassword.split(Pattern.quote(DELIMITER));
 
         if (parts.length != 4) {
             return false;
@@ -70,8 +70,7 @@ public class PasswordEncoder {
                     rawPassword.toCharArray(),
                     salt,
                     iterations,
-                    keyLength
-            );
+                    keyLength);
 
             SecretKeyFactory factory = SecretKeyFactory.getInstance(ALGORITHM);
             return factory.generateSecret(spec).getEncoded();

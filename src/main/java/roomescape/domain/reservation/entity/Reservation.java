@@ -29,10 +29,6 @@ public class Reservation {
         this.time = time;
     }
 
-    public static Reservation create(String username, Theme theme, LocalDate date, ReservationTime time) {
-        return new Reservation(null, username, theme, date, time);
-    }
-
     public static Reservation createByUser(String username, Theme theme, LocalDate date, ReservationTime time,
                                            Clock clock) {
         Reservation reservation = new Reservation(null, username, theme, date, time);
@@ -46,21 +42,6 @@ public class Reservation {
 
     public static Reservation of(Long id, String username, Theme theme, LocalDate date, ReservationTime time) {
         return new Reservation(id, username, theme, date, time);
-    }
-
-    public Reservation assignId(Long id) {
-        validateAssignableId(id);
-        return new Reservation(id, this.username, this.theme, this.date, this.time);
-    }
-
-    private void validateAssignableId(Long id) {
-        if (id != null && id <= 0) {
-            throw new IllegalArgumentException("id는 양수여야 합니다.");
-        }
-
-        if (this.id != null) {
-            throw new IllegalStateException("이미 id가 할당된 예약입니다.");
-        }
     }
 
     public Reservation updateByUser(Theme theme, LocalDate date, ReservationTime time, Clock clock) {
@@ -112,15 +93,20 @@ public class Reservation {
         if (other == null || getClass() != other.getClass()) {
             return false;
         }
-        if (this.id == null) {
+        Reservation that = (Reservation) other;
+
+        if (this.id == null || that.id == null) {
             return false;
         }
-        Reservation reservation = (Reservation) other;
-        return Objects.equals(this.id, reservation.id);
+
+        return Objects.equals(this.id, that.id);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id);
+        if (id == null) {
+            return System.identityHashCode(this);
+        }
+        return id.hashCode();
     }
 }

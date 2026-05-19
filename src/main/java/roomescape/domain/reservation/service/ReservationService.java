@@ -52,7 +52,8 @@ public class ReservationService {
     }
 
     public ReservationsResponse findMyReservations(LoginMember loginMember) {
-        List<ReservationResponse> reservations = reservationRepository.findAllByUsername(loginMember.username()).stream()
+        List<ReservationResponse> reservations = reservationRepository.findAllByUsername(loginMember.username())
+                .stream()
                 .map(ReservationResponse::from)
                 .toList();
 

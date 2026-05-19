@@ -7,6 +7,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import roomescape.common.exception.BusinessException;
+import roomescape.common.exception.CommonErrorCode;
 import roomescape.domain.theme.entity.Theme;
 import roomescape.domain.theme.exception.ThemeErrorCode;
 import roomescape.domain.theme.repository.ThemeRepository;
@@ -43,6 +44,12 @@ public class ThemeService {
         if (!themeRepository.existsById(themeId)) {
             throw new BusinessException(ThemeErrorCode.THEME_NOT_FOUND);
         }
+
+        LocalDate today = LocalDate.now(clock);
+        if (date.isBefore(today)) {
+            throw new BusinessException(CommonErrorCode.VALIDATION_FAILED);
+        }
+
         List<ThemeReservationTimeResponse> times = themeRepository.findAllReservationTimesByThemeIdAndDate(themeId,
                         date)
                 .stream()
@@ -53,6 +60,10 @@ public class ThemeService {
     }
 
     public PopularThemesResponse findPopularThemes(Integer period, Integer limit) {
+        if (period == null || period <= 0 || limit == null || limit <= 0) {
+            throw new BusinessException(CommonErrorCode.VALIDATION_FAILED);
+        }
+
         LocalDate today = LocalDate.now(clock);
         LocalDate startDate = today.minusDays(period);
         LocalDate endDate = today.minusDays(1);

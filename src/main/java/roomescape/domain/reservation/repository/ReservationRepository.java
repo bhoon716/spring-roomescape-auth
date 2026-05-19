@@ -13,6 +13,8 @@ public interface ReservationRepository {
 
     Optional<Reservation> findById(Long id);
 
+    Optional<Reservation> findByIdAndUsername(Long id, String username);
+
     Reservation save(Reservation reservation);
 
     int update(Long id, Reservation reservation);

@@ -74,10 +74,29 @@ public class ReservationJdbcRepository implements ReservationRepository {
             WHERE r.id = :id;
             """;
 
+    private static final String FIND_RESERVATION_WITH_TIME_AND_THEME_BY_ID_AND_USERNAME_QUERY = """
+            SELECT
+                r.id AS reservation_id,
+                r.username AS username,
+                r.date,
+                t.id AS theme_id,
+                t.name AS theme_name,
+                t.description AS theme_description,
+                t.thumbnail_url AS theme_thumbnail_url,
+                rt.id AS time_id,
+                rt.start_at
+            FROM reservation AS r
+            INNER JOIN reservation_time AS rt
+                ON r.time_id = rt.id
+            INNER JOIN theme AS t
+                ON r.theme_id = t.id
+            WHERE r.id = :id
+                AND r.username = :username;
+            """;
+
     private static final String UPDATE_RESERVATION_BY_ID_QUERY = """
             UPDATE reservation
             SET
-                username = :username,
                 theme_id = :themeId,
                 date = :date,
                 time_id = :timeId
@@ -173,6 +192,25 @@ public class ReservationJdbcRepository implements ReservationRepository {
     }
 
     @Override
+    public Optional<Reservation> findByIdAndUsername(Long id, String username) {
+        SqlParameterSource parameters = new MapSqlParameterSource()
+                .addValue("id", id)
+                .addValue("username", username);
+
+        try {
+            Reservation reservation = jdbcTemplate.queryForObject(
+                    FIND_RESERVATION_WITH_TIME_AND_THEME_BY_ID_AND_USERNAME_QUERY,
+                    parameters,
+                    RESERVATION_ROW_MAPPER
+            );
+
+            return Optional.ofNullable(reservation);
+        } catch (EmptyResultDataAccessException exception) {
+            return Optional.empty();
+        }
+    }
+
+    @Override
     public Reservation save(Reservation reservation) {
         if (reservation == null) {
             throw new IllegalArgumentException("reservation이 null 입니다.");
@@ -187,7 +225,8 @@ public class ReservationJdbcRepository implements ReservationRepository {
         Number key = simpleJdbcInsert.executeAndReturnKey(parameters);
         Long generatedId = key.longValue();
 
-        return reservation.assignId(generatedId);
+        return Reservation.of(generatedId, reservation.getUsername(), reservation.getTheme(), reservation.getDate(),
+                reservation.getTime());
     }
 
     @Override
@@ -198,7 +237,6 @@ public class ReservationJdbcRepository implements ReservationRepository {
 
         SqlParameterSource parameters = new MapSqlParameterSource()
                 .addValue("id", id)
-                .addValue("username", reservation.getUsername())
                 .addValue("themeId", reservation.getTheme().getId())
                 .addValue("date", reservation.getDate())
                 .addValue("timeId", reservation.getTime().getId());

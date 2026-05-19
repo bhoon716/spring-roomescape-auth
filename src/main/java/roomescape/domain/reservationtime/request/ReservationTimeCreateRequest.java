@@ -4,7 +4,7 @@ import jakarta.validation.constraints.NotNull;
 import java.time.LocalTime;
 
 public record ReservationTimeCreateRequest(
-        @NotNull(message = "startAt은 null일 수 없습니다.")
+        @NotNull(message = "시작 시간은 필수입니다.")
         LocalTime startAt
 ) {
 }
