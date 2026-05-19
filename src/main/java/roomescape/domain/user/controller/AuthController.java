@@ -8,7 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.bind.annotation.RestController;
 import roomescape.common.auth.LoginUser;
 import roomescape.domain.user.request.LoginRequest;
 import roomescape.domain.user.request.SignupRequest;
@@ -16,7 +16,7 @@ import roomescape.domain.user.response.LoginResponse;
 import roomescape.domain.user.response.SignupResponse;
 import roomescape.domain.user.service.AuthService;
 
-@RestControllerAdvice
+@RestController
 @RequestMapping("/auth")
 public class AuthController {
 
@@ -41,14 +41,14 @@ public class AuthController {
         LoginResponse response = authService.login(request);
 
         HttpSession session = httpRequest.getSession();
-        session.setAttribute(LoginUser.SESSION_NAME, response.id());
+        session.setAttribute(LoginUser.SESSION_NAME, new LoginUser(response.id(), response.username()));
 
         return ResponseEntity.ok(response);
     }
 
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(HttpServletRequest httpRequest) {
-        HttpSession session = httpRequest.getSession();
+        HttpSession session = httpRequest.getSession(false);
 
         if (session != null) {
             session.invalidate();

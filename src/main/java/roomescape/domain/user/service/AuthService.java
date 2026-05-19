@@ -24,6 +24,7 @@ public class AuthService {
         this.passwordEncoder = passwordEncoder;
     }
 
+    @Transactional
     public SignupResponse signup(SignupRequest request) {
         if (userRepository.existsByUsername(request.username())) {
             throw new BusinessException(UserErrorCode.DUPLICATED_USERNAME);
@@ -37,7 +38,7 @@ public class AuthService {
 
     public LoginResponse login(LoginRequest request) {
         User user = userRepository.findByUsername(request.username())
-                .orElseThrow(() -> new BusinessException(UserErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(UserErrorCode.USERNAME_OR_PASSWORD_NOT_MATCHES));
 
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
             throw new BusinessException(UserErrorCode.USERNAME_OR_PASSWORD_NOT_MATCHES);

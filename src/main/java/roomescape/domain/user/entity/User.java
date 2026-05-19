@@ -1,5 +1,7 @@
 package roomescape.domain.user.entity;
 
+import java.util.Objects;
+
 public class User {
 
     private final Long id;
@@ -39,5 +41,27 @@ public class User {
 
     public UserRole getRole() {
         return role;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (other == null || getClass() != other.getClass()) {
+            return false;
+        }
+        User that = (User) other;
+
+        if (this.id == null || that.id == null) {
+            return false;
+        }
+
+        return Objects.equals(this.id, that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        if (id == null) {
+            return System.identityHashCode(this);
+        }
+        return id.hashCode();
     }
 }

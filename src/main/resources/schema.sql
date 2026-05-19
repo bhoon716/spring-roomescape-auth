@@ -1,3 +1,13 @@
+CREATE TABLE "user"
+(
+    id       BIGINT       NOT NULL AUTO_INCREMENT,
+    username VARCHAR(255) NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    role     VARCHAR(255) NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT uk_user_username UNIQUE (username)
+);
+
 CREATE TABLE reservation_time
 (
     id       BIGINT NOT NULL AUTO_INCREMENT,
