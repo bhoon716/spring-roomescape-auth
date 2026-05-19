@@ -232,7 +232,7 @@ VALUES ('예찬', 3, '2026-05-04', 8);
 INSERT INTO reservation (username, theme_id, date, time_id)
 VALUES ('윤하', 4, '2026-05-03', 8);
 
-INSERT INTO "user" (username, password, role)
+INSERT INTO users (username, password, role)
 VALUES ('admin', 'PBKDF2WithHmacSHA256$100000$VetJW/X4u5ZUsgccYKtC0g==$oL7BKhcPu+CP2Gxqo6a5SI7aV2FynPtZvIWByB7L1XQ=', 'ADMIN');
-INSERT INTO "user" (username, password, role)
+INSERT INTO users (username, password, role)
 VALUES ('user', 'PBKDF2WithHmacSHA256$100000$blpMpAr6BtYenq7Y672rQw==$E2gdI82j9jxuAGPyIuxlCBOpGXue3P6fl7LMyZ+KrOY=', 'USER');

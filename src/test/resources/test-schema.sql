@@ -1,9 +1,9 @@
 DROP TABLE IF EXISTS reservation;
 DROP TABLE IF EXISTS reservation_time;
 DROP TABLE IF EXISTS theme;
-DROP TABLE IF EXISTS "user";
+DROP TABLE IF EXISTS users;
 
-CREATE TABLE "user"
+CREATE TABLE users
 (
     id       BIGINT       NOT NULL AUTO_INCREMENT,
     username VARCHAR(255) NOT NULL,

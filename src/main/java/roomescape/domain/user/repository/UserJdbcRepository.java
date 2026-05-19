@@ -32,8 +32,7 @@ public class UserJdbcRepository implements UserRepository {
             resultSet.getLong("id"),
             resultSet.getString("username"),
             resultSet.getString("password"),
-            UserRole.valueOf(resultSet.getString("role"))
-    );
+            UserRole.valueOf(resultSet.getString("role")));
 
     private final NamedParameterJdbcTemplate jdbcTemplate;
     private final SimpleJdbcInsert simpleJdbcInsert;
@@ -54,8 +53,7 @@ public class UserJdbcRepository implements UserRepository {
             User user = jdbcTemplate.queryForObject(
                     FIND_USER_BY_USERNAME_QUERY,
                     parameters,
-                    USER_ROW_MAPPER
-            );
+                    USER_ROW_MAPPER);
 
             return Optional.ofNullable(user);
         } catch (EmptyResultDataAccessException exception) {
