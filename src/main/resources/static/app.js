@@ -7,6 +7,8 @@ const state = {
     selectedThemeId: null,
     selectedTimeId: null,
     reservationSort: "date",
+    loginUser: localStorage.getItem("username") || null,
+    authMode: "login",
 };
 
 const fallbackImages = [
@@ -24,6 +26,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     $("#dateInput").value = new Date().toISOString().slice(0, 10);
     renderPopularPeriod();
     bindEvents();
+    renderAuthHeader();
     await loadAll();
 });
 
@@ -43,6 +46,13 @@ function bindEvents() {
     $("#themeForm").addEventListener("submit", createTheme);
     $("#timeForm").addEventListener("submit", createTime);
     $("#adminReservationForm").addEventListener("submit", createAdminReservation);
+
+    // Auth events
+    $("#showLoginButton").addEventListener("click", () => showAuthModal("login"));
+    $("#showSignupButton").addEventListener("click", () => showAuthModal("signup"));
+    $("#closeModalButton").addEventListener("click", hideAuthModal);
+    $("#logoutButton").addEventListener("click", handleLogout);
+    $("#authForm").addEventListener("submit", submitAuthForm);
 }
 
 async function loadAll() {
@@ -118,9 +128,13 @@ async function loadReservations() {
 }
 
 async function loadMyReservations() {
-    if (!state.myReservationName) return;
     try {
-        const data = await api(`/reservations/me/${state.myReservationName}`);
+        let path = "/reservations/me";
+        if (!state.loginUser) {
+            if (!state.myReservationName) return;
+            path = `/reservations/me/${state.myReservationName}`;
+        }
+        const data = await api(path);
         state.myReservations = data.reservations || [];
         renderMyReservations();
     } catch (error) {
@@ -373,8 +387,13 @@ function renderAdminLists() {
 async function createReservation(event) {
     event.preventDefault();
 
+    if (!state.loginUser) {
+        showToast("로그인이 필요한 기능입니다. 로그인 후 시도해주세요.");
+        showAuthModal("login");
+        return;
+    }
+
     const form = event.currentTarget;
-    const username = $("#usernameInput").value.trim();
     const date = $("#dateInput").value;
 
     if (!state.selectedThemeId || !state.selectedTimeId) {
@@ -386,7 +405,6 @@ async function createReservation(event) {
         await api("/reservations", {
             method: "POST",
             body: JSON.stringify({
-                username,
                 themeId: state.selectedThemeId,
                 date,
                 timeId: state.selectedTimeId,
@@ -610,7 +628,7 @@ function switchView(view) {
     if (view === "reservations") {
         loadReservations();
     } else if (view === "myReservations") {
-        if (state.myReservationName) {
+        if (state.loginUser || state.myReservationName) {
             loadMyReservations();
         }
     }
@@ -648,4 +666,111 @@ function showToast(message) {
     toast.classList.add("show");
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => toast.classList.remove("show"), 2800);
+}
+
+/* Authentication Helper Functions */
+function showAuthModal(mode = "login") {
+    state.authMode = mode;
+    $("#authModal").classList.remove("hidden");
+    $("#authForm").reset();
+
+    if (mode === "login") {
+        $("#modalTitle").textContent = "로그인";
+        $("#authEmailLabel").classList.add("hidden");
+        $("#authEmail").removeAttribute("required");
+        $("#authSubmitButton").textContent = "로그인";
+    } else {
+        $("#modalTitle").textContent = "회원가입";
+        $("#authEmailLabel").classList.remove("hidden");
+        $("#authEmail").setAttribute("required", "required");
+        $("#authSubmitButton").textContent = "회원가입";
+    }
+}
+
+function hideAuthModal() {
+    $("#authModal").classList.add("hidden");
+}
+
+function renderAuthHeader() {
+    if (state.loginUser) {
+        $("#unauthenticatedHeader").classList.add("hidden");
+        $("#authenticatedHeader").classList.remove("hidden");
+        $("#welcomeMessage").textContent = `${state.loginUser}님 환영합니다!`;
+        
+        // Hide name search form in My Reservations
+        $("#myReservationSearchForm").classList.add("hidden");
+        
+        // Disable usernameInput and set to current user in booking
+        if ($("#usernameInput")) {
+            $("#usernameInput").value = state.loginUser;
+            $("#usernameInput").disabled = true;
+            $("#usernameInput").parentElement.style.opacity = "0.7";
+        }
+    } else {
+        $("#unauthenticatedHeader").classList.remove("hidden");
+        $("#authenticatedHeader").classList.add("hidden");
+        
+        // Show name search form in My Reservations
+        $("#myReservationSearchForm").classList.remove("hidden");
+        
+        // Enable usernameInput and reset in booking
+        if ($("#usernameInput")) {
+            $("#usernameInput").value = "";
+            $("#usernameInput").disabled = false;
+            $("#usernameInput").parentElement.style.opacity = "1";
+        }
+    }
+}
+
+async function handleLogout() {
+    try {
+        await api("/auth/logout", { method: "POST" });
+        state.loginUser = null;
+        localStorage.removeItem("username");
+        showToast("로그아웃되었습니다.");
+        renderAuthHeader();
+        switchView("booking");
+        await loadAll();
+    } catch (error) {
+        showToast(error.message);
+    }
+}
+
+async function submitAuthForm(event) {
+    event.preventDefault();
+
+    const username = $("#authUsername").value.trim();
+    const password = $("#authPassword").value;
+    const email = $("#authEmail").value.trim();
+
+    try {
+        if (state.authMode === "login") {
+            // Login Request
+            await api("/auth/login", {
+                method: "POST",
+                body: JSON.stringify({ username, password }),
+            });
+            state.loginUser = username;
+            localStorage.setItem("username", username);
+            showToast(`${username}님, 환영합니다!`);
+            hideAuthModal();
+            renderAuthHeader();
+            
+            // Auto reload my reservations if on myReservations tab
+            if ($(".tab[data-view='myReservations']").classList.contains("active")) {
+                await loadMyReservations();
+            }
+            await loadAll();
+        } else {
+            // Signup Request
+            await api("/auth/signup", {
+                method: "POST",
+                body: JSON.stringify({ username, password, email }),
+            });
+            showToast("회원가입이 성공적으로 완료되었습니다! 로그인해 주세요.");
+            showAuthModal("login");
+        }
+    } catch (error) {
+        showToast(error.message);
+    }
 }

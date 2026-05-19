@@ -594,3 +594,90 @@ textarea:focus {
         flex: 1 1 180px;
     }
 }
+
+/* Authentication Status Header */
+.auth-status {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.compact-btn {
+    min-height: 38px;
+    padding: 0 12px;
+    font-size: 13px;
+}
+
+/* Auth Modal Styles */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(17, 17, 17, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+}
+
+.modal-content {
+    background: var(--surface);
+    border: 4px solid var(--line);
+    border-radius: 8px;
+    padding: 28px;
+    width: min(420px, calc(100% - 32px));
+    position: relative;
+    box-shadow: var(--shadow);
+    display: grid;
+    gap: 20px;
+}
+
+.modal-content h3 {
+    margin-bottom: 4px;
+}
+
+.close-button {
+    position: absolute;
+    top: 14px;
+    right: 18px;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    color: var(--text);
+}
+
+.close-button:hover {
+    color: var(--danger);
+}
+
+#authForm {
+    display: grid;
+    gap: 16px;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.auth-info-banner {
+    background: var(--mint-soft);
+    border: 2px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-weight: 800;
+    font-size: 14px;
+    color: var(--text);
+}
+
+.auth-error-banner {
+    background: #ffd4d4;
+    border: 2px solid var(--line);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-weight: 800;
+    font-size: 14px;
+    color: var(--danger);
+}
+

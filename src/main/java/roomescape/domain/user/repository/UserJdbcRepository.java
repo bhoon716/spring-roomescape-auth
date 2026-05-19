@@ -16,14 +16,14 @@ public class UserJdbcRepository implements UserRepository {
 
     private static final String FIND_USER_BY_USERNAME_QUERY = """
             SELECT *
-            FROM user
+            FROM users
             WHERE username = :username;
             """;
 
     private static final String EXISTS_BY_USERNAME_QUERY = """
             SELECT EXISTS (
                 SELECT 1
-                FROM user
+                FROM users
                 WHERE username = :username
             );
             """;
@@ -40,7 +40,7 @@ public class UserJdbcRepository implements UserRepository {
     public UserJdbcRepository(NamedParameterJdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
         this.simpleJdbcInsert = new SimpleJdbcInsert(jdbcTemplate.getJdbcTemplate())
-                .withTableName("user")
+                .withTableName("users")
                 .usingGeneratedKeyColumns("id");
     }
 

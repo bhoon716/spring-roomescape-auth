@@ -13,6 +13,18 @@
         <p class="eyebrow">Room Escape</p>
         <h1>방탈출 예약</h1>
     </div>
+    <div id="authStatus" class="auth-status">
+        <!-- 로그인되지 않은 상태 -->
+        <div id="unauthenticatedHeader">
+            <button id="showLoginButton" class="secondary-button compact-btn">로그인</button>
+            <button id="showSignupButton" class="secondary-button compact-btn">회원가입</button>
+        </div>
+        <!-- 로그인된 상태 -->
+        <div id="authenticatedHeader" class="hidden">
+            <span id="welcomeMessage" style="font-weight: 900; margin-right: 8px;"></span>
+            <button id="logoutButton" class="danger-button compact-btn">로그아웃</button>
+        </div>
+    </div>
     <nav class="tabs" aria-label="주요 화면">
         <button class="tab active" data-view="booking">예약</button>
         <button class="tab" data-view="myReservations">내 예약</button>
@@ -177,6 +189,29 @@
         </div>
     </section>
 </main>
+
+<!-- Auth Modal -->
+<div id="authModal" class="modal hidden">
+    <div class="modal-content">
+        <span id="closeModalButton" class="close-button">&times;</span>
+        <h3 id="modalTitle">로그인</h3>
+        <form id="authForm">
+            <label>
+                이름 (username)
+                <input id="authUsername" type="text" placeholder="username" required>
+            </label>
+            <label>
+                비밀번호
+                <input id="authPassword" type="password" placeholder="password" required>
+            </label>
+            <label id="authEmailLabel" class="hidden">
+                이메일
+                <input id="authEmail" type="email" placeholder="example@email.com">
+            </label>
+            <button class="primary-button" type="submit" id="authSubmitButton">로그인</button>
+        </form>
+    </div>
+</div>
 
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
