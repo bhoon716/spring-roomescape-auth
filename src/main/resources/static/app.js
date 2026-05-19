@@ -676,13 +676,9 @@ function showAuthModal(mode = "login") {
 
     if (mode === "login") {
         $("#modalTitle").textContent = "로그인";
-        $("#authEmailLabel").classList.add("hidden");
-        $("#authEmail").removeAttribute("required");
         $("#authSubmitButton").textContent = "로그인";
     } else {
         $("#modalTitle").textContent = "회원가입";
-        $("#authEmailLabel").classList.remove("hidden");
-        $("#authEmail").setAttribute("required", "required");
         $("#authSubmitButton").textContent = "회원가입";
     }
 }
@@ -741,7 +737,6 @@ async function submitAuthForm(event) {
 
     const username = $("#authUsername").value.trim();
     const password = $("#authPassword").value;
-    const email = $("#authEmail").value.trim();
 
     try {
         if (state.authMode === "login") {
@@ -765,7 +760,7 @@ async function submitAuthForm(event) {
             // Signup Request
             await api("/auth/signup", {
                 method: "POST",
-                body: JSON.stringify({ username, password, email }),
+                body: JSON.stringify({ username, password }),
             });
             showToast("회원가입이 성공적으로 완료되었습니다! 로그인해 주세요.");
             showAuthModal("login");
