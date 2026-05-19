@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import roomescape.common.auth.LoginUser;
 import roomescape.domain.user.request.LoginRequest;
 import roomescape.domain.user.request.SignupRequest;
 import roomescape.domain.user.response.LoginResponse;
@@ -40,7 +41,7 @@ public class AuthController {
         LoginResponse response = authService.login(request);
 
         HttpSession session = httpRequest.getSession();
-        session.setAttribute("loginMemberId", response.id());
+        session.setAttribute(LoginUser.SESSION_NAME, response.id());
 
         return ResponseEntity.ok(response);
     }

@@ -8,18 +8,21 @@ public class User {
 
     private final String password;
 
-    private User(Long id, String username, String password) {
+    private final UserRole role;
+
+    private User(Long id, String username, String password, UserRole role) {
         this.id = id;
         this.username = username;
         this.password = password;
+        this.role = role;
     }
 
-    public static User create(String username, String password) {
-        return new User(null, username, password);
+    public static User createUser(String username, String password) {
+        return new User(null, username, password, UserRole.USER);
     }
 
-    public static User of(Long id, String username, String password) {
-        return new User(id, username, password);
+    public static User of(Long id, String username, String password, UserRole role) {
+        return new User(id, username, password, role);
     }
 
     public Long getId() {
@@ -32,5 +35,9 @@ public class User {
 
     public String getPassword() {
         return password;
+    }
+
+    public UserRole getRole() {
+        return role;
     }
 }

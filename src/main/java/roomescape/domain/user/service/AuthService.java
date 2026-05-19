@@ -29,7 +29,7 @@ public class AuthService {
             throw new BusinessException(UserErrorCode.DUPLICATED_USERNAME);
         }
 
-        User user = User.create(request.username(), passwordEncoder.encode(request.password()));
+        User user = User.createUser(request.username(), passwordEncoder.encode(request.password()));
         User savedUser = userRepository.save(user);
 
         return SignupResponse.from(savedUser);
