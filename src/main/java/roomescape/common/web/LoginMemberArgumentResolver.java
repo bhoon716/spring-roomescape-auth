@@ -1,7 +1,7 @@
-package roomescape.common.auth;
+package roomescape.common.web;
 
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpSession;
 import org.springframework.core.MethodParameter;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
@@ -11,9 +11,22 @@ import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
 import roomescape.common.exception.BusinessException;
 import roomescape.common.exception.CommonErrorCode;
+import roomescape.domain.auth.token.AuthHeaderExtractor;
+import roomescape.domain.auth.token.JwtTokenProvider;
 
 @Component
 public class LoginMemberArgumentResolver implements HandlerMethodArgumentResolver {
+
+    private final JwtTokenProvider jwtTokenProvider;
+    private final AuthHeaderExtractor authHeaderExtractor;
+
+    public LoginMemberArgumentResolver(
+            JwtTokenProvider jwtTokenProvider,
+            AuthHeaderExtractor authHeaderExtractor
+    ) {
+        this.jwtTokenProvider = jwtTokenProvider;
+        this.authHeaderExtractor = authHeaderExtractor;
+    }
 
     @Override
     public boolean supportsParameter(MethodParameter parameter) {
@@ -36,18 +49,17 @@ public class LoginMemberArgumentResolver implements HandlerMethodArgumentResolve
             throw new BusinessException(CommonErrorCode.UNAUTHORIZED);
         }
 
-        HttpSession session = request.getSession(false);
-
-        if (session == null) {
-            throw new BusinessException(CommonErrorCode.UNAUTHORIZED);
+        LoginMember loginMember = (LoginMember) request.getAttribute("loginMember");
+        if (loginMember != null) {
+            return loginMember;
         }
 
-        Object attribute = session.getAttribute(LoginMember.SESSION_NAME);
+        String accessToken = authHeaderExtractor.extractAccessToken(request);
+        Claims claims = jwtTokenProvider.getClaims(accessToken);
 
-        if (!(attribute instanceof LoginMember loginMember)) {
-            throw new BusinessException(CommonErrorCode.UNAUTHORIZED);
-        }
+        Long userId = Long.valueOf(claims.getSubject());
+        String username = claims.get("username", String.class);
 
-        return loginMember;
+        return new LoginMember(userId, username);
     }
 }
