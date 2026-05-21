@@ -49,11 +49,6 @@ public class LoginMemberArgumentResolver implements HandlerMethodArgumentResolve
             throw new BusinessException(CommonErrorCode.UNAUTHORIZED);
         }
 
-        LoginMember loginMember = (LoginMember) request.getAttribute("loginMember");
-        if (loginMember != null) {
-            return loginMember;
-        }
-
         String accessToken = authHeaderExtractor.extractAccessToken(request);
         Claims claims = jwtTokenProvider.getClaims(accessToken);
 

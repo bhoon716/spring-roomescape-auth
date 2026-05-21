@@ -1,11 +1,15 @@
 package roomescape.domain.auth.token;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.MalformedJwtException;
 import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.UnsupportedJwtException;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SignatureException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -121,8 +125,10 @@ public class JwtTokenProvider {
                     .build()
                     .parseClaimsJws(token)
                     .getBody();
+        } catch (ExpiredJwtException exception) {
+            throw new BusinessException(CommonErrorCode.ACCESS_TOKEN_EXPIRED);
         } catch (JwtException | IllegalArgumentException exception) {
-            throw new BusinessException(CommonErrorCode.UNAUTHORIZED);
+            throw new BusinessException(CommonErrorCode.INVALID_TOKEN);
         }
     }
 

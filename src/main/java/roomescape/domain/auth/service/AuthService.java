@@ -76,12 +76,12 @@ public class AuthService {
     @Transactional
     public JwtTokenPair reissue(String refreshToken) {
         if (refreshToken == null || refreshToken.isBlank()) {
-            throw new BusinessException(CommonErrorCode.UNAUTHORIZED);
+            throw new BusinessException(CommonErrorCode.AUTHENTICATION_REQUIRED);
         }
 
         String tokenHash = jwtTokenProvider.hash(refreshToken);
         RefreshToken refreshTokenEntity = refreshTokenRepository.findByTokenHash(tokenHash)
-                .orElseThrow(() -> new BusinessException(CommonErrorCode.UNAUTHORIZED));
+                .orElseThrow(() -> new BusinessException(CommonErrorCode.REFRESH_TOKEN_INVALID));
 
         validateRevoke(refreshTokenEntity);
         validateExpire(refreshTokenEntity);
@@ -99,12 +99,12 @@ public class AuthService {
     @Transactional
     public void logout(String refreshToken) {
         if (refreshToken == null || refreshToken.isBlank()) {
-            throw new BusinessException(CommonErrorCode.UNAUTHORIZED);
+            throw new BusinessException(CommonErrorCode.AUTHENTICATION_REQUIRED);
         }
 
         String tokenHash = jwtTokenProvider.hash(refreshToken);
         RefreshToken refreshTokenEntity = refreshTokenRepository.findByTokenHash(tokenHash)
-                .orElseThrow(() -> new BusinessException(CommonErrorCode.UNAUTHORIZED));
+                .orElseThrow(() -> new BusinessException(CommonErrorCode.REFRESH_TOKEN_INVALID));
 
         validateRevoke(refreshTokenEntity);
         validateExpire(refreshTokenEntity);
@@ -114,20 +114,20 @@ public class AuthService {
     private void validateRevoke(RefreshToken refreshTokenEntity) {
         if (refreshTokenEntity.isRevoked()) {
             refreshTokenRepository.revokeAllByUserId(refreshTokenEntity.getUserId());
-            throw new BusinessException(CommonErrorCode.UNAUTHORIZED);
+            throw new BusinessException(CommonErrorCode.REFRESH_TOKEN_EXPIRED);
         }
     }
 
     private void validateExpire(RefreshToken refreshTokenEntity) {
         if (refreshTokenEntity.isExpired(LocalDateTime.ofInstant(clock.instant(), UTC))) {
             refreshTokenRepository.update(refreshTokenEntity.revoke());
-            throw new BusinessException(CommonErrorCode.UNAUTHORIZED);
+            throw new BusinessException(CommonErrorCode.REFRESH_TOKEN_EXPIRED);
         }
     }
 
     private void revokeOrThrow(RefreshToken refreshTokenEntity) {
         if (!refreshTokenRepository.revokeIfNotRevoked(refreshTokenEntity)) {
-            throw new BusinessException(CommonErrorCode.UNAUTHORIZED);
+            throw new BusinessException(CommonErrorCode.REFRESH_TOKEN_INVALID);
         }
     }
 

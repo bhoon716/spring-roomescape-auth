@@ -27,7 +27,6 @@ import roomescape.common.exception.CommonErrorCode;
 import roomescape.domain.store.entity.Manager;
 import roomescape.domain.store.repository.ManagerRepository;
 import roomescape.domain.user.entity.User;
-import roomescape.domain.user.entity.UserRole;
 import roomescape.domain.user.repository.UserRepository;
 
 @Service
@@ -109,7 +108,7 @@ public class ReservationService {
 
         validateDuplicateReservation(request.storeId(), request.themeId(), request.date(), request.timeId());
 
-        Reservation reservation = Reservation.createAdmin(request.username(), store, theme, request.date(), time);
+        Reservation reservation = Reservation.createByAdmin(request.username(), store, theme, request.date(), time);
         Reservation savedReservation = reservationRepository.save(reservation);
 
         return ReservationResponse.from(savedReservation);
@@ -215,11 +214,11 @@ public class ReservationService {
         User user = userRepository.findById(loginMember.id())
                 .orElseThrow(() -> new BusinessException(CommonErrorCode.UNAUTHORIZED));
 
-        if (user.getRole() == UserRole.ADMIN) {
+        if (user.isAdmin()) {
             return;
         }
 
-        if (user.getRole() == UserRole.MANAGER) {
+        if (user.isManager()) {
             Manager manager = managerRepository.findByUserId(user.getId())
                     .orElseThrow(() -> new BusinessException(CommonErrorCode.FORBIDDEN));
 
@@ -236,11 +235,11 @@ public class ReservationService {
         User user = userRepository.findById(loginMember.id())
                 .orElseThrow(() -> new BusinessException(CommonErrorCode.UNAUTHORIZED));
 
-        if (user.getRole() == UserRole.ADMIN) {
+        if (user.isAdmin()) {
             return;
         }
 
-        if (user.getRole() == UserRole.MANAGER) {
+        if (user.isManager()) {
             Manager manager = managerRepository.findByUserId(user.getId())
                     .orElseThrow(() -> new BusinessException(CommonErrorCode.FORBIDDEN));
 

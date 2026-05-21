@@ -40,7 +40,7 @@ public class Reservation {
         return reservation;
     }
 
-    public static Reservation createAdmin(String username, Store store, Theme theme, LocalDate date, ReservationTime time) {
+    public static Reservation createByAdmin(String username, Store store, Theme theme, LocalDate date, ReservationTime time) {
         return new Reservation(null, username, store, theme, date, time);
     }
 

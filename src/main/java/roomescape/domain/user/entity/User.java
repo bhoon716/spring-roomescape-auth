@@ -43,6 +43,14 @@ public class User {
         return role;
     }
 
+    public boolean isAdmin() {
+        return role == UserRole.ADMIN;
+    }
+
+    public boolean isManager() {
+        return role == UserRole.MANAGER;
+    }
+
     @Override
     public boolean equals(Object other) {
         if (other == null || getClass() != other.getClass()) {

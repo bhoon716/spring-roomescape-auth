@@ -3,8 +3,6 @@ package roomescape.common.web;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import io.jsonwebtoken.Claims;
@@ -80,31 +78,9 @@ class LoginMemberArgumentResolverTest {
     }
 
     @Test
-    @DisplayName("request attribute에 이미 loginMember가 존재할 경우 파싱하지 않고 바로 반환한다")
-    void resolveArgument_existing_attribute_success() {
-        // given
-        LoginMember loginMember = new LoginMember(2L, "user2");
-        when(request.getAttribute("loginMember")).thenReturn(loginMember);
-
-        // when
-        Object result = resolver.resolveArgument(
-                mock(MethodParameter.class), 
-                mock(ModelAndViewContainer.class), 
-                webRequest, 
-                mock(WebDataBinderFactory.class)
-        );
-
-        // then
-        assertThat(result).isEqualTo(loginMember);
-        verifyNoInteractions(jwtTokenProvider, authHeaderExtractor);
-    }
-
-    @Test
-    @DisplayName("request attribute에 loginMember가 없을 경우 토큰을 정상 파싱하여 LoginMember 객체를 생성 및 반환한다")
+    @DisplayName("토큰을 정상 파싱하여 LoginMember 객체를 생성 및 반환한다")
     void resolveArgument_parse_token_success() {
         // given
-        when(request.getAttribute("loginMember")).thenReturn(null);
-        
         String token = "access-token-xyz";
         when(authHeaderExtractor.extractAccessToken(request)).thenReturn(token);
 

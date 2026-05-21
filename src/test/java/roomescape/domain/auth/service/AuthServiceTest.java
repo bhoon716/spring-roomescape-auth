@@ -178,7 +178,7 @@ class AuthServiceTest {
     }
 
     @Test
-    @DisplayName("재발급 시 만료된 리프레시 토큰이 전달되면 UNAUTHORIZED 예외를 던지고 폐기 처리한다")
+    @DisplayName("재발급 시 만료된 리프레시 토큰이 전달되면 REFRESH_TOKEN_EXPIRED 예외를 던지고 폐기 처리한다")
     void reissue_fail_expired_token() {
         // given
         String inputToken = "expired-refresh";
@@ -195,12 +195,12 @@ class AuthServiceTest {
         assertThatThrownBy(() -> authService.reissue(inputToken))
                 .isInstanceOf(BusinessException.class)
                 .extracting("errorCode")
-                .isEqualTo(CommonErrorCode.UNAUTHORIZED);
+                .isEqualTo(CommonErrorCode.REFRESH_TOKEN_EXPIRED);
         verify(refreshTokenRepository).update(any(RefreshToken.class)); // revoke 처리 업데이트 확인
     }
 
     @Test
-    @DisplayName("이미 폐기된 리프레시 토큰이 전달되면(토큰 탈취 우려) 동일 사용자 모든 토큰을 강제 일괄 무효화 처리하고 UNAUTHORIZED 예외를 던진다")
+    @DisplayName("이미 폐기된 리프레시 토큰이 전달되면(토큰 탈취 우려) 동일 사용자 모든 토큰을 강제 일괄 무효화 처리하고 REFRESH_TOKEN_EXPIRED 예외를 던진다")
     void reissue_fail_already_revoked_token() {
         // given
         String inputToken = "stolen-refresh";
@@ -216,7 +216,7 @@ class AuthServiceTest {
         assertThatThrownBy(() -> authService.reissue(inputToken))
                 .isInstanceOf(BusinessException.class)
                 .extracting("errorCode")
-                .isEqualTo(CommonErrorCode.UNAUTHORIZED);
+                .isEqualTo(CommonErrorCode.REFRESH_TOKEN_EXPIRED);
         
         // 동일 사용자 모든 리프레시 토큰을 무효화하는 로직이 호출되었는지 확인
         verify(refreshTokenRepository).revokeAllByUserId(1L);

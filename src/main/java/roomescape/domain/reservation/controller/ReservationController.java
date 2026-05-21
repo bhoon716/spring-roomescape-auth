@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import roomescape.common.web.LoginRequired;
 import roomescape.common.web.LoginUser;
 import roomescape.common.web.LoginMember;
 import roomescape.domain.reservation.request.ReservationUpdateRequest;
@@ -30,7 +29,6 @@ public class ReservationController {
         this.reservationService = reservationService;
     }
 
-    @LoginRequired
     @GetMapping("/me")
     public ResponseEntity<ReservationsResponse> getMyReservations(
             @LoginUser LoginMember loginMember
@@ -39,7 +37,6 @@ public class ReservationController {
         return ResponseEntity.ok(response);
     }
 
-    @LoginRequired
     @PostMapping
     public ResponseEntity<ReservationResponse> save(
             @RequestBody @Valid UserReservationCreateRequest request,
@@ -50,7 +47,6 @@ public class ReservationController {
                 .body(response);
     }
 
-    @LoginRequired
     @PatchMapping("/{reservationId}")
     public ResponseEntity<ReservationResponse> update(
             @PathVariable Long reservationId,
@@ -61,7 +57,6 @@ public class ReservationController {
         return ResponseEntity.ok(response);
     }
 
-    @LoginRequired
     @DeleteMapping("/{reservationId}")
     public ResponseEntity<Void> deleteById(
             @PathVariable Long reservationId,

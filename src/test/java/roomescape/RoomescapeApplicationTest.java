@@ -56,7 +56,8 @@ class RoomescapeApplicationTest {
                 {
                     "themeId": 1,
                     "date": "2026-05-30",
-                    "timeId": 1
+                    "timeId": 1,
+                    "storeId": 1
                 }
                 """;
 

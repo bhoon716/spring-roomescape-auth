@@ -94,12 +94,12 @@ class ReservationTest {
 
     @Test
     @DisplayName("createAdmin 호출 시에는 날짜/시간 검증 없이 예약을 무조건 생성한다")
-    void createAdmin_success() {
+    void createByAdmin_success() {
         // given
         LocalDate pastDate = LocalDate.now(fixedClock).minusDays(5);
 
         // when
-        Reservation reservation = Reservation.createAdmin("admin", dummyStore, dummyTheme, pastDate, dummyTime);
+        Reservation reservation = Reservation.createByAdmin("admin", dummyStore, dummyTheme, pastDate, dummyTime);
 
         // then
         assertThat(reservation.getDate()).isEqualTo(pastDate);

@@ -62,7 +62,7 @@ class JwtTokenProviderTest {
     }
 
     @Test
-    @DisplayName("조작되었거나 서명이 올바르지 않은 토큰 검증 시 UNAUTHORIZED 예외를 반환한다")
+    @DisplayName("조작되었거나 서명이 올바르지 않은 토큰 검증 시 INVALID_TOKEN 예외를 반환한다")
     void getUserId_invalid_token_throws() {
         // given
         String manipulatedToken = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI0MiIsInR5cGUiOiJBQ0NFU1MiLCJ1c2VybmFtZSI6InVzZXIxIiwicm9sZSI6IlVTRVIifQ.invalid_signature_value";
@@ -72,7 +72,7 @@ class JwtTokenProviderTest {
                 .isInstanceOf(BusinessException.class)
                 .satisfies(exception -> {
                     BusinessException businessException = (BusinessException) exception;
-                    assertThat(businessException.getErrorCode()).isEqualTo(CommonErrorCode.UNAUTHORIZED);
+                    assertThat(businessException.getErrorCode()).isEqualTo(CommonErrorCode.INVALID_TOKEN);
                 });
     }
 
