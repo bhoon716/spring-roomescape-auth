@@ -1,3 +1,24 @@
+INSERT INTO store (name)
+VALUES ('강남점');
+INSERT INTO store (name)
+VALUES ('홍대점');
+
+INSERT INTO users (username, password, role)
+VALUES ('admin', 'PBKDF2WithHmacSHA256$100000$VetJW/X4u5ZUsgccYKtC0g==$oL7BKhcPu+CP2Gxqo6a5SI7aV2FynPtZvIWByB7L1XQ=', 'ADMIN');
+INSERT INTO users (username, password, role)
+VALUES ('user', 'PBKDF2WithHmacSHA256$100000$blpMpAr6BtYenq7Y672rQw==$E2gdI82j9jxuAGPyIuxlCBOpGXue3P6fl7LMyZ+KrOY=', 'USER');
+INSERT INTO users (username, password, role)
+VALUES ('manager1', 'PBKDF2WithHmacSHA256$100000$blpMpAr6BtYenq7Y672rQw==$E2gdI82j9jxuAGPyIuxlCBOpGXue3P6fl7LMyZ+KrOY=', 'MANAGER');
+INSERT INTO users (username, password, role)
+VALUES ('manager2', 'PBKDF2WithHmacSHA256$100000$blpMpAr6BtYenq7Y672rQw==$E2gdI82j9jxuAGPyIuxlCBOpGXue3P6fl7LMyZ+KrOY=', 'MANAGER');
+
+INSERT INTO manager (user_id) VALUES (3);
+INSERT INTO manager (user_id) VALUES (4);
+
+INSERT INTO manager_store (manager_id, store_id) VALUES (1, 1);
+INSERT INTO manager_store (manager_id, store_id) VALUES (1, 2);
+INSERT INTO manager_store (manager_id, store_id) VALUES (2, 2);
+
 INSERT INTO theme (name, description, thumbnail_url)
 VALUES ('워너비', '워너비 테마입니다.', 'https://example.com/wannabe.png');
 INSERT INTO theme (name, description, thumbnail_url)
@@ -33,35 +54,35 @@ INSERT INTO reservation_time (start_at)
 VALUES ('15:00');
 
 -- 2026-05-05에 '워너비'(ID 1) 테마 예약 (집계 대상)
-INSERT INTO reservation (username, theme_id, date, time_id)
-VALUES ('흑곰', 1, '2026-05-05', 1);
-INSERT INTO reservation (username, theme_id, date, time_id)
-VALUES ('카키', 1, '2026-05-05', 2);
-INSERT INTO reservation (username, theme_id, date, time_id)
-VALUES ('피온', 1, '2026-05-05', 3);
-INSERT INTO reservation (username, theme_id, date, time_id)
-VALUES ('워넬', 1, '2026-05-05', 4);
-INSERT INTO reservation (username, theme_id, date, time_id)
-VALUES ('포비', 1, '2026-05-05', 5);
+INSERT INTO reservation (username, store_id, theme_id, date, time_id)
+VALUES ('흑곰', 1, 1, '2026-05-05', 1);
+INSERT INTO reservation (username, store_id, theme_id, date, time_id)
+VALUES ('카키', 1, 1, '2026-05-05', 2);
+INSERT INTO reservation (username, store_id, theme_id, date, time_id)
+VALUES ('피온', 1, 1, '2026-05-05', 3);
+INSERT INTO reservation (username, store_id, theme_id, date, time_id)
+VALUES ('워넬', 1, 1, '2026-05-05', 4);
+INSERT INTO reservation (username, store_id, theme_id, date, time_id)
+VALUES ('포비', 1, 1, '2026-05-05', 5);
 
 -- 2026-05-05에 '공포의 지하실'(ID 2) 테마 예약 (집계 대상)
-INSERT INTO reservation (username, theme_id, date, time_id)
-VALUES ('네오', 2, '2026-05-05', 1);
-INSERT INTO reservation (username, theme_id, date, time_id)
-VALUES ('브리', 2, '2026-05-05', 2);
-INSERT INTO reservation (username, theme_id, date, time_id)
-VALUES ('워니', 2, '2026-05-05', 3);
+INSERT INTO reservation (username, store_id, theme_id, date, time_id)
+VALUES ('네오', 1, 2, '2026-05-05', 1);
+INSERT INTO reservation (username, store_id, theme_id, date, time_id)
+VALUES ('브리', 1, 2, '2026-05-05', 2);
+INSERT INTO reservation (username, store_id, theme_id, date, time_id)
+VALUES ('워니', 1, 2, '2026-05-05', 3);
 
 -- 2026-05-06에 '워너비'(ID 1) 테마 예약 (집계 제외)
-INSERT INTO reservation (username, theme_id, date, time_id)
-VALUES ('브라운', 1, '2026-05-06', 1);
-INSERT INTO reservation (username, theme_id, date, time_id)
-VALUES ('제임스', 1, '2026-05-06', 3);
-INSERT INTO reservation (username, theme_id, date, time_id)
-VALUES ('로치', 1, '2026-05-06', 5);
+INSERT INTO reservation (username, store_id, theme_id, date, time_id)
+VALUES ('브라운', 1, 1, '2026-05-06', 1);
+INSERT INTO reservation (username, store_id, theme_id, date, time_id)
+VALUES ('제임스', 1, 1, '2026-05-06', 3);
+INSERT INTO reservation (username, store_id, theme_id, date, time_id)
+VALUES ('로치', 1, 1, '2026-05-06', 5);
 
 -- 2026-05-07에 '공포의 지하실'(ID 2) 테마 예약 (집계 제외)
-INSERT INTO reservation (username, theme_id, date, time_id)
-VALUES ('이안', 2, '2026-05-07', 2);
-INSERT INTO reservation (username, theme_id, date, time_id)
-VALUES ('스타크', 2, '2026-05-07', 4);
+INSERT INTO reservation (username, store_id, theme_id, date, time_id)
+VALUES ('이안', 1, 2, '2026-05-07', 2);
+INSERT INTO reservation (username, store_id, theme_id, date, time_id)
+VALUES ('스타크', 1, 2, '2026-05-07', 4);
