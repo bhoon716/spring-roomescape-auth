@@ -7,7 +7,8 @@ const state = {
     selectedThemeId: null,
     selectedTimeId: null,
     reservationSort: "date",
-    loginUser: localStorage.getItem("username") || null,
+    accessToken: localStorage.getItem("accessToken") || null,
+    loginUser: localStorage.getItem("accessToken") ? localStorage.getItem("username") : null,
     authMode: "login",
 };
 
@@ -66,13 +67,35 @@ async function loadAll() {
 }
 
 async function api(path, options = {}) {
+    const {
+        skipAuthRefresh = false,
+        returnResponse = false,
+        headers: customHeaders = {},
+        ...fetchOptions
+    } = options;
+    const headers = {
+        "Content-Type": "application/json",
+        ...customHeaders,
+    };
+
+    if (state.accessToken) {
+        headers.Authorization = `Bearer ${state.accessToken}`;
+    }
+
     const response = await fetch(path, {
-        headers: {
-            "Content-Type": "application/json",
-            ...options.headers,
-        },
-        ...options,
+        ...fetchOptions,
+        headers,
     });
+
+    if (response.status === 401 && state.accessToken && !skipAuthRefresh) {
+        try {
+            await refreshAccessToken();
+            return api(path, { ...options, skipAuthRefresh: true });
+        } catch (ignore) {
+            clearAuthState();
+            renderAuthHeader();
+        }
+    }
 
     if (!response.ok) {
         let message = "요청을 처리하지 못했습니다.";
@@ -86,11 +109,39 @@ async function api(path, options = {}) {
     }
 
     if (response.status === 204) {
-        return null;
+        return returnResponse ? { response, body: null } : null;
     }
 
     const text = await response.text();
-    return text ? JSON.parse(text) : null;
+    const body = text ? JSON.parse(text) : null;
+    return returnResponse ? { response, body } : body;
+}
+
+async function refreshAccessToken() {
+    const tokenResponse = await api("/auth/reissue", {
+        method: "POST",
+        skipAuthRefresh: true,
+        returnResponse: true,
+    });
+    const accessToken = extractAccessToken(tokenResponse.response);
+
+    state.accessToken = accessToken;
+    localStorage.setItem("accessToken", accessToken);
+}
+
+function extractAccessToken(response) {
+    const authorizationHeader = response.headers.get("Authorization");
+    if (!authorizationHeader || !authorizationHeader.startsWith("Bearer ")) {
+        throw new Error("Access token을 확인할 수 없습니다.");
+    }
+    return authorizationHeader.substring("Bearer ".length);
+}
+
+function clearAuthState() {
+    state.loginUser = null;
+    state.accessToken = null;
+    localStorage.removeItem("username");
+    localStorage.removeItem("accessToken");
 }
 
 async function loadThemes() {
@@ -721,8 +772,7 @@ function renderAuthHeader() {
 async function handleLogout() {
     try {
         await api("/auth/logout", { method: "POST" });
-        state.loginUser = null;
-        localStorage.removeItem("username");
+        clearAuthState();
         showToast("로그아웃되었습니다.");
         renderAuthHeader();
         switchView("booking");
@@ -741,12 +791,16 @@ async function submitAuthForm(event) {
     try {
         if (state.authMode === "login") {
             // Login Request
-            await api("/auth/login", {
+            const tokenResponse = await api("/auth/login", {
                 method: "POST",
                 body: JSON.stringify({ username, password }),
+                returnResponse: true,
             });
+            const accessToken = extractAccessToken(tokenResponse.response);
             state.loginUser = username;
+            state.accessToken = accessToken;
             localStorage.setItem("username", username);
+            localStorage.setItem("accessToken", accessToken);
             showToast(`${username}님, 환영합니다!`);
             hideAuthModal();
             renderAuthHeader();

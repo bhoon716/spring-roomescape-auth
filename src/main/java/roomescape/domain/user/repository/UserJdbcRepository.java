@@ -20,6 +20,12 @@ public class UserJdbcRepository implements UserRepository {
             WHERE username = :username;
             """;
 
+    private static final String FIND_USER_BY_ID_QUERY = """
+            SELECT *
+            FROM users
+            WHERE id = :id;
+            """;
+
     private static final String EXISTS_BY_USERNAME_QUERY = """
             SELECT EXISTS (
                 SELECT 1
@@ -81,5 +87,22 @@ public class UserJdbcRepository implements UserRepository {
 
         return Boolean.TRUE.equals(
                 jdbcTemplate.queryForObject(EXISTS_BY_USERNAME_QUERY, parameters, Boolean.class));
+    }
+
+    @Override
+    public Optional<User> findById(Long id) {
+        try {
+            SqlParameterSource parameters = new MapSqlParameterSource()
+                    .addValue("id", id);
+
+            User user = jdbcTemplate.queryForObject(
+                    FIND_USER_BY_ID_QUERY,
+                    parameters,
+                    USER_ROW_MAPPER);
+
+            return Optional.ofNullable(user);
+        } catch (EmptyResultDataAccessException exception) {
+            return Optional.empty();
+        }
     }
 }

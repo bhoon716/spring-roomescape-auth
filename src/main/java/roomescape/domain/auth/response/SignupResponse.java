@@ -1,4 +1,4 @@
-package roomescape.domain.user.response;
+package roomescape.domain.auth.response;
 
 import roomescape.domain.user.entity.User;
 

@@ -1,4 +1,5 @@
 DROP TABLE IF EXISTS reservation;
+DROP TABLE IF EXISTS refresh_token;
 DROP TABLE IF EXISTS reservation_time;
 DROP TABLE IF EXISTS theme;
 DROP TABLE IF EXISTS users;
@@ -11,6 +12,20 @@ CREATE TABLE users
     role     VARCHAR(255) NOT NULL,
     PRIMARY KEY (id),
     CONSTRAINT uk_user_username UNIQUE (username)
+);
+
+CREATE TABLE refresh_token
+(
+    id          BIGINT       NOT NULL AUTO_INCREMENT,
+    user_id     BIGINT       NOT NULL,
+    token_hash  VARCHAR(255) NOT NULL,
+    expires_at  TIMESTAMP    NOT NULL,
+    is_revoked  BOOLEAN      NOT NULL,
+    PRIMARY KEY (id),
+    FOREIGN KEY (user_id) REFERENCES users (id)
+        ON DELETE CASCADE
+        ON UPDATE RESTRICT,
+    CONSTRAINT uk_refresh_token_token_hash UNIQUE (token_hash)
 );
 
 CREATE TABLE reservation_time
