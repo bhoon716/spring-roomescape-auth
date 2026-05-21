@@ -5,6 +5,10 @@ import jakarta.validation.constraints.Positive;
 import java.time.LocalDate;
 
 public record ReservationUpdateRequest(
+        @NotNull(message = "storeId는 null일 수 없습니다.")
+        @Positive(message = "storeId는 양수만 가능합니다.")
+        Long storeId,
+
         @NotNull(message = "themeId는 null일 수 없습니다.")
         @Positive(message = "themeId는 양수만 가능합니다.")
         Long themeId,
