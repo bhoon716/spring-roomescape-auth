@@ -31,6 +31,8 @@ import roomescape.domain.reservation.response.ReservationsResponse;
 import roomescape.domain.reservationtime.entity.ReservationTime;
 import roomescape.domain.reservationtime.exception.TimeErrorCode;
 import roomescape.domain.reservationtime.repository.ReservationTimeRepository;
+import roomescape.domain.store.entity.Store;
+import roomescape.domain.store.repository.StoreRepository;
 import roomescape.domain.theme.entity.Theme;
 import roomescape.domain.theme.exception.ThemeErrorCode;
 import roomescape.domain.theme.repository.ThemeRepository;
@@ -40,9 +42,11 @@ class ReservationServiceTest {
     private ReservationRepository reservationRepository;
     private ReservationTimeRepository reservationTimeRepository;
     private ThemeRepository themeRepository;
+    private StoreRepository storeRepository;
     private Clock clock;
     private ReservationService service;
 
+    private Store sampleStore;
     private Theme sampleTheme;
     private ReservationTime sampleTime;
     private LoginMember loginMember;
@@ -52,15 +56,18 @@ class ReservationServiceTest {
         reservationRepository = mock(ReservationRepository.class);
         reservationTimeRepository = mock(ReservationTimeRepository.class);
         themeRepository = mock(ThemeRepository.class);
+        storeRepository = mock(StoreRepository.class);
         clock = Clock.fixed(Instant.parse("2026-05-21T18:00:00Z"), ZoneId.of("UTC")); // 2026-05-21 18:00:00 UTC
 
         service = new ReservationService(
                 reservationRepository,
                 reservationTimeRepository,
                 themeRepository,
+                storeRepository,
                 clock
         );
 
+        sampleStore = new Store(1L, "강남점");
         sampleTheme = Theme.of(1L, "공포테마", "무서운 설명", "http://image.png");
         sampleTime = ReservationTime.of(1L, LocalTime.of(20, 0)); // 20:00
         loginMember = new LoginMember(10L, "user1");
@@ -70,7 +77,7 @@ class ReservationServiceTest {
     @DisplayName("findAllReservations 호출 시 모든 예약을 조회하여 반환한다")
     void findAllReservations_success() {
         // given
-        Reservation reservation = Reservation.of(100L, "user1", sampleTheme, LocalDate.of(2026, 5, 22), sampleTime);
+        Reservation reservation = Reservation.of(100L, "user1", sampleStore, sampleTheme, LocalDate.of(2026, 5, 22), sampleTime);
         when(reservationRepository.findAll()).thenReturn(List.of(reservation));
 
         // when
@@ -86,7 +93,7 @@ class ReservationServiceTest {
     @DisplayName("findMyReservations 호출 시 본인의 예약을 조회하여 반환한다")
     void findMyReservations_success() {
         // given
-        Reservation reservation = Reservation.of(100L, "user1", sampleTheme, LocalDate.of(2026, 5, 22), sampleTime);
+        Reservation reservation = Reservation.of(100L, "user1", sampleStore, sampleTheme, LocalDate.of(2026, 5, 22), sampleTime);
         when(reservationRepository.findAllByUsername("user1")).thenReturn(List.of(reservation));
 
         // when
@@ -102,13 +109,14 @@ class ReservationServiceTest {
     void saveReservationByUser_success() {
         // given
         LocalDate date = LocalDate.of(2026, 5, 22); // 미래 날짜
-        UserReservationCreateRequest request = new UserReservationCreateRequest(1L, date, 1L);
+        UserReservationCreateRequest request = new UserReservationCreateRequest(1L, 1L, date, 1L);
 
+        when(storeRepository.findById(1L)).thenReturn(Optional.of(sampleStore));
         when(reservationTimeRepository.findById(1L)).thenReturn(Optional.of(sampleTime));
         when(themeRepository.findById(1L)).thenReturn(Optional.of(sampleTheme));
-        when(reservationRepository.existsByThemeIdAndDateAndTimeId(1L, date, 1L)).thenReturn(false);
+        when(reservationRepository.existsByStoreIdAndThemeIdAndDateAndTimeId(1L, 1L, date, 1L)).thenReturn(false);
 
-        Reservation savedReservation = Reservation.of(200L, "user1", sampleTheme, date, sampleTime);
+        Reservation savedReservation = Reservation.of(200L, "user1", sampleStore, sampleTheme, date, sampleTime);
         when(reservationRepository.save(any(Reservation.class))).thenReturn(savedReservation);
 
         // when
@@ -126,7 +134,8 @@ class ReservationServiceTest {
     void saveReservationByUser_fail_timeNotFound() {
         // given
         LocalDate date = LocalDate.of(2026, 5, 22);
-        UserReservationCreateRequest request = new UserReservationCreateRequest(1L, date, 999L);
+        UserReservationCreateRequest request = new UserReservationCreateRequest(1L, 1L, date, 999L);
+        when(storeRepository.findById(1L)).thenReturn(Optional.of(sampleStore));
         when(reservationTimeRepository.findById(999L)).thenReturn(Optional.empty());
 
         // when & then
@@ -143,7 +152,8 @@ class ReservationServiceTest {
     void saveReservationByUser_fail_themeNotFound() {
         // given
         LocalDate date = LocalDate.of(2026, 5, 22);
-        UserReservationCreateRequest request = new UserReservationCreateRequest(999L, date, 1L);
+        UserReservationCreateRequest request = new UserReservationCreateRequest(1L, 999L, date, 1L);
+        when(storeRepository.findById(1L)).thenReturn(Optional.of(sampleStore));
         when(reservationTimeRepository.findById(1L)).thenReturn(Optional.of(sampleTime));
         when(themeRepository.findById(999L)).thenReturn(Optional.empty());
 
@@ -161,10 +171,11 @@ class ReservationServiceTest {
     void saveReservationByUser_fail_duplicate() {
         // given
         LocalDate date = LocalDate.of(2026, 5, 22);
-        UserReservationCreateRequest request = new UserReservationCreateRequest(1L, date, 1L);
+        UserReservationCreateRequest request = new UserReservationCreateRequest(1L, 1L, date, 1L);
+        when(storeRepository.findById(1L)).thenReturn(Optional.of(sampleStore));
         when(reservationTimeRepository.findById(1L)).thenReturn(Optional.of(sampleTime));
         when(themeRepository.findById(1L)).thenReturn(Optional.of(sampleTheme));
-        when(reservationRepository.existsByThemeIdAndDateAndTimeId(1L, date, 1L)).thenReturn(true);
+        when(reservationRepository.existsByStoreIdAndThemeIdAndDateAndTimeId(1L, 1L, date, 1L)).thenReturn(true);
 
         // when & then
         assertThatThrownBy(() -> service.saveReservationByUser(request, loginMember))
@@ -180,10 +191,11 @@ class ReservationServiceTest {
     void saveReservationByUser_fail_pastReservation() {
         // given
         LocalDate date = LocalDate.of(2026, 5, 20); // 오늘(21일)보다 과거
-        UserReservationCreateRequest request = new UserReservationCreateRequest(1L, date, 1L);
+        UserReservationCreateRequest request = new UserReservationCreateRequest(1L, 1L, date, 1L);
+        when(storeRepository.findById(1L)).thenReturn(Optional.of(sampleStore));
         when(reservationTimeRepository.findById(1L)).thenReturn(Optional.of(sampleTime));
         when(themeRepository.findById(1L)).thenReturn(Optional.of(sampleTheme));
-        when(reservationRepository.existsByThemeIdAndDateAndTimeId(1L, date, 1L)).thenReturn(false);
+        when(reservationRepository.existsByStoreIdAndThemeIdAndDateAndTimeId(1L, 1L, date, 1L)).thenReturn(false);
 
         // when & then
         assertThatThrownBy(() -> service.saveReservationByUser(request, loginMember))
@@ -199,13 +211,14 @@ class ReservationServiceTest {
     void saveReservationByAdmin_success() {
         // given
         LocalDate date = LocalDate.of(2026, 5, 22);
-        AdminReservationCreateRequest request = new AdminReservationCreateRequest("대리인", 1L, date, 1L);
+        AdminReservationCreateRequest request = new AdminReservationCreateRequest(1L, "대리인", 1L, date, 1L);
 
+        when(storeRepository.findById(1L)).thenReturn(Optional.of(sampleStore));
         when(reservationTimeRepository.findById(1L)).thenReturn(Optional.of(sampleTime));
         when(themeRepository.findById(1L)).thenReturn(Optional.of(sampleTheme));
-        when(reservationRepository.existsByThemeIdAndDateAndTimeId(1L, date, 1L)).thenReturn(false);
+        when(reservationRepository.existsByStoreIdAndThemeIdAndDateAndTimeId(1L, 1L, date, 1L)).thenReturn(false);
 
-        Reservation savedReservation = Reservation.of(300L, "대리인", sampleTheme, date, sampleTime);
+        Reservation savedReservation = Reservation.of(300L, "대리인", sampleStore, sampleTheme, date, sampleTime);
         when(reservationRepository.save(any(Reservation.class))).thenReturn(savedReservation);
 
         // when
@@ -225,14 +238,15 @@ class ReservationServiceTest {
         LocalDate newDate = LocalDate.of(2026, 5, 25);
         ReservationTime newTime = ReservationTime.of(2L, LocalTime.of(16, 0));
         Theme newTheme = Theme.of(2L, "신규테마", "신설명", "url");
-        ReservationUpdateRequest request = new ReservationUpdateRequest(2L, newDate, 2L);
+        ReservationUpdateRequest request = new ReservationUpdateRequest(1L, 2L, newDate, 2L);
 
-        Reservation existingReservation = Reservation.of(reservationId, "user1", sampleTheme, LocalDate.of(2026, 5, 22), sampleTime);
+        Reservation existingReservation = Reservation.of(reservationId, "user1", sampleStore, sampleTheme, LocalDate.of(2026, 5, 22), sampleTime);
 
+        when(storeRepository.findById(1L)).thenReturn(Optional.of(sampleStore));
         when(reservationTimeRepository.findById(2L)).thenReturn(Optional.of(newTime));
         when(reservationRepository.findByIdAndUsername(reservationId, "user1")).thenReturn(Optional.of(existingReservation));
         when(themeRepository.findById(2L)).thenReturn(Optional.of(newTheme));
-        when(reservationRepository.existsByThemeIdAndDateAndTimeIdAndIdNot(2L, newDate, 2L, reservationId)).thenReturn(false);
+        when(reservationRepository.existsByStoreIdAndThemeIdAndDateAndTimeIdAndIdNot(1L, 2L, newDate, 2L, reservationId)).thenReturn(false);
 
         // when
         ReservationResponse response = service.updateReservationByUser(reservationId, request, loginMember);
@@ -252,14 +266,15 @@ class ReservationServiceTest {
         LocalDate newDate = LocalDate.of(2026, 5, 25);
         ReservationTime newTime = ReservationTime.of(2L, LocalTime.of(16, 0));
         Theme newTheme = Theme.of(2L, "신규테마", "신설명", "url");
-        ReservationUpdateRequest request = new ReservationUpdateRequest(2L, newDate, 2L);
+        ReservationUpdateRequest request = new ReservationUpdateRequest(1L, 2L, newDate, 2L);
 
-        Reservation existingReservation = Reservation.of(reservationId, "user1", sampleTheme, LocalDate.of(2026, 5, 22), sampleTime);
+        Reservation existingReservation = Reservation.of(reservationId, "user1", sampleStore, sampleTheme, LocalDate.of(2026, 5, 22), sampleTime);
 
+        when(storeRepository.findById(1L)).thenReturn(Optional.of(sampleStore));
         when(reservationRepository.findById(reservationId)).thenReturn(Optional.of(existingReservation));
         when(themeRepository.findById(2L)).thenReturn(Optional.of(newTheme));
         when(reservationTimeRepository.findById(2L)).thenReturn(Optional.of(newTime));
-        when(reservationRepository.existsByThemeIdAndDateAndTimeIdAndIdNot(2L, newDate, 2L, reservationId)).thenReturn(false);
+        when(reservationRepository.existsByStoreIdAndThemeIdAndDateAndTimeIdAndIdNot(1L, 2L, newDate, 2L, reservationId)).thenReturn(false);
 
         // when
         ReservationResponse response = service.updateReservationByAdmin(reservationId, request);
@@ -276,7 +291,7 @@ class ReservationServiceTest {
     void deleteReservationByUser_success() {
         // given
         Long reservationId = 100L;
-        Reservation existingReservation = Reservation.of(reservationId, "user1", sampleTheme, LocalDate.of(2026, 5, 22), sampleTime);
+        Reservation existingReservation = Reservation.of(reservationId, "user1", sampleStore, sampleTheme, LocalDate.of(2026, 5, 22), sampleTime);
 
         when(reservationRepository.findByIdAndUsername(reservationId, "user1")).thenReturn(Optional.of(existingReservation));
         when(reservationRepository.deleteById(reservationId)).thenReturn(1);
@@ -294,7 +309,7 @@ class ReservationServiceTest {
         // given
         Long reservationId = 100L;
         // 과거 날짜
-        Reservation existingReservation = Reservation.of(reservationId, "user1", sampleTheme, LocalDate.of(2026, 5, 20), sampleTime);
+        Reservation existingReservation = Reservation.of(reservationId, "user1", sampleStore, sampleTheme, LocalDate.of(2026, 5, 20), sampleTime);
 
         when(reservationRepository.findByIdAndUsername(reservationId, "user1")).thenReturn(Optional.of(existingReservation));
 

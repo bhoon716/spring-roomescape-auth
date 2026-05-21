@@ -14,16 +14,19 @@ import org.junit.jupiter.api.Test;
 import roomescape.common.exception.BusinessException;
 import roomescape.domain.reservation.exception.ReservationErrorCode;
 import roomescape.domain.reservationtime.entity.ReservationTime;
+import roomescape.domain.store.entity.Store;
 import roomescape.domain.theme.entity.Theme;
 
 class ReservationTest {
 
+    private Store dummyStore;
     private Theme dummyTheme;
     private ReservationTime dummyTime;
     private Clock fixedClock;
 
     @BeforeEach
     void setUp() {
+        dummyStore = new Store(1L, "강남점");
         dummyTheme = Theme.of(1L, "테마", "설명", "url");
         dummyTime = ReservationTime.of(1L, LocalTime.of(15, 0));
         // 현재 시간을 2026-05-21T18:00:00Z 로 고정
@@ -37,7 +40,7 @@ class ReservationTest {
         LocalDate futureDate = LocalDate.now(fixedClock).plusDays(1);
 
         // when
-        Reservation reservation = Reservation.createByUser("user1", dummyTheme, futureDate, dummyTime, fixedClock);
+        Reservation reservation = Reservation.createByUser("user1", dummyStore, dummyTheme, futureDate, dummyTime, fixedClock);
 
         // then
         assertThat(reservation).isNotNull();
@@ -54,7 +57,7 @@ class ReservationTest {
         ReservationTime futureTime = ReservationTime.of(2L, LocalTime.of(18, 30));
 
         // when
-        Reservation reservation = Reservation.createByUser("user1", dummyTheme, today, futureTime, fixedClock);
+        Reservation reservation = Reservation.createByUser("user1", dummyStore, dummyTheme, today, futureTime, fixedClock);
 
         // then
         assertThat(reservation).isNotNull();
@@ -68,7 +71,7 @@ class ReservationTest {
         LocalDate pastDate = LocalDate.now(fixedClock).minusDays(1);
 
         // when & then
-        assertThatThrownBy(() -> Reservation.createByUser("user1", dummyTheme, pastDate, dummyTime, fixedClock))
+        assertThatThrownBy(() -> Reservation.createByUser("user1", dummyStore, dummyTheme, pastDate, dummyTime, fixedClock))
                 .isInstanceOf(BusinessException.class)
                 .extracting("errorCode")
                 .isEqualTo(ReservationErrorCode.PAST_RESERVATION);
@@ -83,7 +86,7 @@ class ReservationTest {
         ReservationTime pastTime = ReservationTime.of(2L, LocalTime.of(17, 30));
 
         // when & then
-        assertThatThrownBy(() -> Reservation.createByUser("user1", dummyTheme, today, pastTime, fixedClock))
+        assertThatThrownBy(() -> Reservation.createByUser("user1", dummyStore, dummyTheme, today, pastTime, fixedClock))
                 .isInstanceOf(BusinessException.class)
                 .extracting("errorCode")
                 .isEqualTo(ReservationErrorCode.PAST_RESERVATION);
@@ -96,7 +99,7 @@ class ReservationTest {
         LocalDate pastDate = LocalDate.now(fixedClock).minusDays(5);
 
         // when
-        Reservation reservation = Reservation.createAdmin("admin", dummyTheme, pastDate, dummyTime);
+        Reservation reservation = Reservation.createAdmin("admin", dummyStore, dummyTheme, pastDate, dummyTime);
 
         // then
         assertThat(reservation.getDate()).isEqualTo(pastDate);
