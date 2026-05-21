@@ -18,6 +18,8 @@ import roomescape.domain.reservation.response.ReservationsResponse;
 import roomescape.domain.reservationtime.entity.ReservationTime;
 import roomescape.domain.reservationtime.exception.TimeErrorCode;
 import roomescape.domain.reservationtime.repository.ReservationTimeRepository;
+import roomescape.domain.store.entity.Store;
+import roomescape.domain.store.repository.StoreRepository;
 import roomescape.domain.theme.entity.Theme;
 import roomescape.domain.theme.exception.ThemeErrorCode;
 import roomescape.domain.theme.repository.ThemeRepository;
@@ -29,22 +31,33 @@ public class ReservationService {
     private final ReservationRepository reservationRepository;
     private final ReservationTimeRepository reservationTimeRepository;
     private final ThemeRepository themeRepository;
+    private final StoreRepository storeRepository;
     private final Clock clock;
 
     public ReservationService(
             ReservationRepository reservationRepository,
             ReservationTimeRepository reservationTimeRepository,
             ThemeRepository themeRepository,
+            StoreRepository storeRepository,
             Clock clock
     ) {
         this.reservationRepository = reservationRepository;
         this.reservationTimeRepository = reservationTimeRepository;
         this.themeRepository = themeRepository;
+        this.storeRepository = storeRepository;
         this.clock = clock;
     }
 
     public ReservationsResponse findAllReservations() {
         List<ReservationResponse> reservations = reservationRepository.findAll().stream()
+                .map(ReservationResponse::from)
+                .toList();
+
+        return new ReservationsResponse(reservations);
+    }
+
+    public ReservationsResponse findAllReservationsByStores(List<Long> storeIds) {
+        List<ReservationResponse> reservations = reservationRepository.findAllByStoreIdIn(storeIds).stream()
                 .map(ReservationResponse::from)
                 .toList();
 
@@ -62,12 +75,13 @@ public class ReservationService {
 
     @Transactional
     public ReservationResponse saveReservationByUser(UserReservationCreateRequest request, LoginMember loginMember) {
+        Store store = findStoreByIdOrThrow(request.storeId());
         ReservationTime time = findTimeByIdOrThrow(request.timeId());
         Theme theme = findThemeByIdOrThrow(request.themeId());
 
-        validateDuplicateReservation(request.themeId(), request.date(), request.timeId());
+        validateDuplicateReservation(request.storeId(), request.themeId(), request.date(), request.timeId());
 
-        Reservation reservation = Reservation.createByUser(loginMember.username(), theme, request.date(), time, clock);
+        Reservation reservation = Reservation.createByUser(loginMember.username(), store, theme, request.date(), time, clock);
         Reservation savedReservation = reservationRepository.save(reservation);
 
         return ReservationResponse.from(savedReservation);
@@ -75,12 +89,13 @@ public class ReservationService {
 
     @Transactional
     public ReservationResponse saveReservationByAdmin(AdminReservationCreateRequest request) {
+        Store store = findStoreByIdOrThrow(request.storeId());
         ReservationTime time = findTimeByIdOrThrow(request.timeId());
         Theme theme = findThemeByIdOrThrow(request.themeId());
 
-        validateDuplicateReservation(request.themeId(), request.date(), request.timeId());
+        validateDuplicateReservation(request.storeId(), request.themeId(), request.date(), request.timeId());
 
-        Reservation reservation = Reservation.createAdmin(request.username(), theme, request.date(), time);
+        Reservation reservation = Reservation.createAdmin(request.username(), store, theme, request.date(), time);
         Reservation savedReservation = reservationRepository.save(reservation);
 
         return ReservationResponse.from(savedReservation);
@@ -92,13 +107,14 @@ public class ReservationService {
             ReservationUpdateRequest request,
             LoginMember loginMember
     ) {
+        Store store = findStoreByIdOrThrow(request.storeId());
         ReservationTime newTime = findTimeByIdOrThrow(request.timeId());
         Reservation reservation = findReservationByIdUsernameOrThrow(reservationId, loginMember.username());
         Theme newTheme = findThemeByIdOrThrow(request.themeId());
 
-        validateDuplicateReservationForUpdate(request.themeId(), request.date(), request.timeId(), reservationId);
+        validateDuplicateReservationForUpdate(request.storeId(), request.themeId(), request.date(), request.timeId(), reservationId);
 
-        Reservation updatedReservation = reservation.updateByUser(newTheme, request.date(), newTime, clock);
+        Reservation updatedReservation = reservation.updateByUser(store, newTheme, request.date(), newTime, clock);
         reservationRepository.update(reservationId, updatedReservation);
 
         return ReservationResponse.from(updatedReservation);
@@ -106,13 +122,14 @@ public class ReservationService {
 
     @Transactional
     public ReservationResponse updateReservationByAdmin(Long id, ReservationUpdateRequest request) {
+        Store store = findStoreByIdOrThrow(request.storeId());
         Reservation reservation = findReservationByIdOrThrow(id);
         Theme newTheme = findThemeByIdOrThrow(request.themeId());
         ReservationTime newTime = findTimeByIdOrThrow(request.timeId());
 
-        validateDuplicateReservationForUpdate(request.themeId(), request.date(), request.timeId(), id);
+        validateDuplicateReservationForUpdate(request.storeId(), request.themeId(), request.date(), request.timeId(), id);
 
-        Reservation updatedReservation = reservation.updateByAdmin(newTheme, request.date(), newTime);
+        Reservation updatedReservation = reservation.updateByAdmin(store, newTheme, request.date(), newTime);
         reservationRepository.update(id, updatedReservation);
 
         return ReservationResponse.from(updatedReservation);
@@ -131,14 +148,14 @@ public class ReservationService {
         deleteByIdOrThrow(id);
     }
 
-    private void validateDuplicateReservation(Long themeId, LocalDate date, Long timeId) {
-        if (reservationRepository.existsByThemeIdAndDateAndTimeId(themeId, date, timeId)) {
+    private void validateDuplicateReservation(Long storeId, Long themeId, LocalDate date, Long timeId) {
+        if (reservationRepository.existsByStoreIdAndThemeIdAndDateAndTimeId(storeId, themeId, date, timeId)) {
             throw new BusinessException(ReservationErrorCode.DUPLICATE_RESERVATION);
         }
     }
 
-    private void validateDuplicateReservationForUpdate(Long themeId, LocalDate date, Long timeId, Long id) {
-        if (reservationRepository.existsByThemeIdAndDateAndTimeIdAndIdNot(themeId, date, timeId, id)) {
+    private void validateDuplicateReservationForUpdate(Long storeId, Long themeId, LocalDate date, Long timeId, Long id) {
+        if (reservationRepository.existsByStoreIdAndThemeIdAndDateAndTimeIdAndIdNot(storeId, themeId, date, timeId, id)) {
             throw new BusinessException(ReservationErrorCode.DUPLICATE_RESERVATION);
         }
     }
@@ -151,6 +168,11 @@ public class ReservationService {
     private Reservation findReservationByIdUsernameOrThrow(Long reservationId, String username) {
         return reservationRepository.findByIdAndUsername(reservationId, username)
                 .orElseThrow(() -> new BusinessException(ReservationErrorCode.RESERVATION_NOT_FOUND));
+    }
+
+    private Store findStoreByIdOrThrow(Long storeId) {
+        return storeRepository.findById(storeId)
+                .orElseThrow(() -> new BusinessException(roomescape.common.exception.CommonErrorCode.NOT_FOUND));
     }
 
     private ReservationTime findTimeByIdOrThrow(Long timeId) {

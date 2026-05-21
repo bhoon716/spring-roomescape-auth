@@ -11,9 +11,13 @@ public interface ReservationRepository {
 
     List<Reservation> findAllByUsername(String username);
 
+    List<Reservation> findAllByStoreIdIn(List<Long> storeIds);
+
     Optional<Reservation> findById(Long id);
 
     Optional<Reservation> findByIdAndUsername(Long id, String username);
+
+    Optional<Reservation> findByIdAndStoreIdIn(Long id, List<Long> storeIds);
 
     Reservation save(Reservation reservation);
 
@@ -21,7 +25,9 @@ public interface ReservationRepository {
 
     int deleteById(Long id);
 
-    boolean existsByThemeIdAndDateAndTimeId(Long themeId, LocalDate date, Long timeId);
+    boolean existsByStoreIdAndThemeIdAndDateAndTimeId(Long storeId, Long themeId, LocalDate date, Long timeId);
 
-    boolean existsByThemeIdAndDateAndTimeIdAndIdNot(Long themeId, LocalDate date, Long timeId, Long id);
+    boolean existsByStoreIdAndThemeIdAndDateAndTimeIdAndIdNot(Long storeId, Long themeId, LocalDate date, Long timeId, Long id);
+
+    boolean existsByIdAndStoreIdIn(Long id, List<Long> storeIds);
 }
