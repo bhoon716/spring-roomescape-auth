@@ -36,6 +36,11 @@ import roomescape.domain.store.repository.StoreRepository;
 import roomescape.domain.theme.entity.Theme;
 import roomescape.domain.theme.exception.ThemeErrorCode;
 import roomescape.domain.theme.repository.ThemeRepository;
+import roomescape.domain.user.repository.UserRepository;
+import roomescape.domain.store.repository.ManagerRepository;
+import roomescape.domain.user.entity.User;
+import roomescape.domain.user.entity.UserRole;
+import roomescape.domain.store.entity.Manager;
 
 class ReservationServiceTest {
 
@@ -43,6 +48,8 @@ class ReservationServiceTest {
     private ReservationTimeRepository reservationTimeRepository;
     private ThemeRepository themeRepository;
     private StoreRepository storeRepository;
+    private UserRepository userRepository;
+    private ManagerRepository managerRepository;
     private Clock clock;
     private ReservationService service;
 
@@ -57,6 +64,8 @@ class ReservationServiceTest {
         reservationTimeRepository = mock(ReservationTimeRepository.class);
         themeRepository = mock(ThemeRepository.class);
         storeRepository = mock(StoreRepository.class);
+        userRepository = mock(UserRepository.class);
+        managerRepository = mock(ManagerRepository.class);
         clock = Clock.fixed(Instant.parse("2026-05-21T18:00:00Z"), ZoneId.of("UTC")); // 2026-05-21 18:00:00 UTC
 
         service = new ReservationService(
@@ -64,6 +73,8 @@ class ReservationServiceTest {
                 reservationTimeRepository,
                 themeRepository,
                 storeRepository,
+                userRepository,
+                managerRepository,
                 clock
         );
 
@@ -213,6 +224,9 @@ class ReservationServiceTest {
         LocalDate date = LocalDate.of(2026, 5, 22);
         AdminReservationCreateRequest request = new AdminReservationCreateRequest(1L, "대리인", 1L, date, 1L);
 
+        User adminUser = User.of(10L, "adminUser", "password", UserRole.ADMIN);
+        when(userRepository.findById(10L)).thenReturn(Optional.of(adminUser));
+
         when(storeRepository.findById(1L)).thenReturn(Optional.of(sampleStore));
         when(reservationTimeRepository.findById(1L)).thenReturn(Optional.of(sampleTime));
         when(themeRepository.findById(1L)).thenReturn(Optional.of(sampleTheme));
@@ -222,7 +236,7 @@ class ReservationServiceTest {
         when(reservationRepository.save(any(Reservation.class))).thenReturn(savedReservation);
 
         // when
-        ReservationResponse response = service.saveReservationByAdmin(request);
+        ReservationResponse response = service.saveReservationByAdmin(loginMember, request);
 
         // then
         assertThat(response.id()).isEqualTo(300L);
@@ -268,6 +282,9 @@ class ReservationServiceTest {
         Theme newTheme = Theme.of(2L, "신규테마", "신설명", "url");
         ReservationUpdateRequest request = new ReservationUpdateRequest(1L, 2L, newDate, 2L);
 
+        User adminUser = User.of(10L, "adminUser", "password", UserRole.ADMIN);
+        when(userRepository.findById(10L)).thenReturn(Optional.of(adminUser));
+
         Reservation existingReservation = Reservation.of(reservationId, "user1", sampleStore, sampleTheme, LocalDate.of(2026, 5, 22), sampleTime);
 
         when(storeRepository.findById(1L)).thenReturn(Optional.of(sampleStore));
@@ -277,7 +294,7 @@ class ReservationServiceTest {
         when(reservationRepository.existsByStoreIdAndThemeIdAndDateAndTimeIdAndIdNot(1L, 2L, newDate, 2L, reservationId)).thenReturn(false);
 
         // when
-        ReservationResponse response = service.updateReservationByAdmin(reservationId, request);
+        ReservationResponse response = service.updateReservationByAdmin(loginMember, reservationId, request);
 
         // then
         assertThat(response.id()).isEqualTo(reservationId);
@@ -327,10 +344,12 @@ class ReservationServiceTest {
     void deleteReservationByAdmin_success() {
         // given
         Long reservationId = 100L;
+        User adminUser = User.of(10L, "adminUser", "password", UserRole.ADMIN);
+        when(userRepository.findById(10L)).thenReturn(Optional.of(adminUser));
         when(reservationRepository.deleteById(reservationId)).thenReturn(1);
 
         // when
-        service.deleteReservationByAdmin(reservationId);
+        service.deleteReservationByAdmin(loginMember, reservationId);
 
         // then
         verify(reservationRepository).deleteById(reservationId);
@@ -341,12 +360,190 @@ class ReservationServiceTest {
     void deleteReservationByAdmin_fail_notFound() {
         // given
         Long reservationId = 999L;
+        User adminUser = User.of(10L, "adminUser", "password", UserRole.ADMIN);
+        when(userRepository.findById(10L)).thenReturn(Optional.of(adminUser));
         when(reservationRepository.deleteById(reservationId)).thenReturn(0);
 
         // when & then
-        assertThatThrownBy(() -> service.deleteReservationByAdmin(reservationId))
+        assertThatThrownBy(() -> service.deleteReservationByAdmin(loginMember, reservationId))
                 .isInstanceOf(BusinessException.class)
                 .extracting("errorCode")
                 .isEqualTo(ReservationErrorCode.RESERVATION_NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("매니저 계정이 본인 매장의 예약을 생성할 때 성공한다")
+    void saveReservationByAdmin_manager_success() {
+        // given
+        LocalDate date = LocalDate.of(2026, 5, 22);
+        AdminReservationCreateRequest request = new AdminReservationCreateRequest(1L, "대리인", 1L, date, 1L);
+
+        User managerUser = User.of(10L, "manager", "password", UserRole.MANAGER);
+        when(userRepository.findById(10L)).thenReturn(Optional.of(managerUser));
+
+        roomescape.domain.store.entity.Manager manager = new roomescape.domain.store.entity.Manager(20L, 10L, List.of(1L, 2L));
+        when(managerRepository.findByUserId(10L)).thenReturn(Optional.of(manager));
+
+        when(storeRepository.findById(1L)).thenReturn(Optional.of(sampleStore));
+        when(reservationTimeRepository.findById(1L)).thenReturn(Optional.of(sampleTime));
+        when(themeRepository.findById(1L)).thenReturn(Optional.of(sampleTheme));
+        when(reservationRepository.existsByStoreIdAndThemeIdAndDateAndTimeId(1L, 1L, date, 1L)).thenReturn(false);
+
+        Reservation savedReservation = Reservation.of(300L, "대리인", sampleStore, sampleTheme, date, sampleTime);
+        when(reservationRepository.save(any(Reservation.class))).thenReturn(savedReservation);
+
+        // when
+        ReservationResponse response = service.saveReservationByAdmin(loginMember, request);
+
+        // then
+        assertThat(response.id()).isEqualTo(300L);
+        verify(reservationRepository).save(any(Reservation.class));
+    }
+
+    @Test
+    @DisplayName("매니저 계정이 담당하지 않는 매장의 예약을 생성하려 하면 FORBIDDEN 예외를 던진다")
+    void saveReservationByAdmin_manager_fail_forbidden() {
+        // given
+        LocalDate date = LocalDate.of(2026, 5, 22);
+        AdminReservationCreateRequest request = new AdminReservationCreateRequest(3L, "대리인", 1L, date, 1L); // 담당하지 않는 매장 3L
+
+        User managerUser = User.of(10L, "manager", "password", UserRole.MANAGER);
+        when(userRepository.findById(10L)).thenReturn(Optional.of(managerUser));
+
+        roomescape.domain.store.entity.Manager manager = new roomescape.domain.store.entity.Manager(20L, 10L, List.of(1L, 2L));
+        when(managerRepository.findByUserId(10L)).thenReturn(Optional.of(manager));
+
+        // when & then
+        assertThatThrownBy(() -> service.saveReservationByAdmin(loginMember, request))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(roomescape.common.exception.CommonErrorCode.FORBIDDEN);
+
+        verify(reservationRepository, never()).save(any(Reservation.class));
+    }
+
+    @Test
+    @DisplayName("일반 USER 계정이 예약을 생성하려고 하면 FORBIDDEN 예외를 던진다")
+    void saveReservationByAdmin_user_fail_forbidden() {
+        // given
+        LocalDate date = LocalDate.of(2026, 5, 22);
+        AdminReservationCreateRequest request = new AdminReservationCreateRequest(1L, "대리인", 1L, date, 1L);
+
+        User user = User.of(10L, "user", "password", UserRole.USER);
+        when(userRepository.findById(10L)).thenReturn(Optional.of(user));
+
+        // when & then
+        assertThatThrownBy(() -> service.saveReservationByAdmin(loginMember, request))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(roomescape.common.exception.CommonErrorCode.FORBIDDEN);
+    }
+
+    @Test
+    @DisplayName("매니저 계정이 소유한 예약에 대해 수정을 요청하면 성공한다")
+    void updateReservationByAdmin_manager_success() {
+        // given
+        Long reservationId = 100L;
+        LocalDate newDate = LocalDate.of(2026, 5, 25);
+        ReservationTime newTime = ReservationTime.of(2L, LocalTime.of(16, 0));
+        Theme newTheme = Theme.of(2L, "신규테마", "신설명", "url");
+        ReservationUpdateRequest request = new ReservationUpdateRequest(1L, 2L, newDate, 2L);
+
+        User managerUser = User.of(10L, "manager", "password", UserRole.MANAGER);
+        when(userRepository.findById(10L)).thenReturn(Optional.of(managerUser));
+
+        roomescape.domain.store.entity.Manager manager = new roomescape.domain.store.entity.Manager(20L, 10L, List.of(1L, 2L));
+        when(managerRepository.findByUserId(10L)).thenReturn(Optional.of(manager));
+
+        // 해당 예약이 매니저 매장에 속하는지 여부 모킹
+        when(reservationRepository.existsByIdAndStoreIdIn(reservationId, List.of(1L, 2L))).thenReturn(true);
+
+        Reservation existingReservation = Reservation.of(reservationId, "user1", sampleStore, sampleTheme, LocalDate.of(2026, 5, 22), sampleTime);
+
+        when(storeRepository.findById(1L)).thenReturn(Optional.of(sampleStore));
+        when(reservationRepository.findById(reservationId)).thenReturn(Optional.of(existingReservation));
+        when(themeRepository.findById(2L)).thenReturn(Optional.of(newTheme));
+        when(reservationTimeRepository.findById(2L)).thenReturn(Optional.of(newTime));
+        when(reservationRepository.existsByStoreIdAndThemeIdAndDateAndTimeIdAndIdNot(1L, 2L, newDate, 2L, reservationId)).thenReturn(false);
+
+        // when
+        ReservationResponse response = service.updateReservationByAdmin(loginMember, reservationId, request);
+
+        // then
+        assertThat(response.id()).isEqualTo(reservationId);
+        verify(reservationRepository).update(any(Long.class), any(Reservation.class));
+    }
+
+    @Test
+    @DisplayName("매니저 계정이 소유하지 않은 예약에 대해 수정을 요청하면 404 Not Found(은폐) 예외를 던진다")
+    void updateReservationByAdmin_manager_fail_notFound() {
+        // given
+        Long reservationId = 100L;
+        LocalDate newDate = LocalDate.of(2026, 5, 25);
+        ReservationUpdateRequest request = new ReservationUpdateRequest(1L, 2L, newDate, 2L);
+
+        User managerUser = User.of(10L, "manager", "password", UserRole.MANAGER);
+        when(userRepository.findById(10L)).thenReturn(Optional.of(managerUser));
+
+        roomescape.domain.store.entity.Manager manager = new roomescape.domain.store.entity.Manager(20L, 10L, List.of(1L, 2L));
+        when(managerRepository.findByUserId(10L)).thenReturn(Optional.of(manager));
+
+        // 타인 매장 예약이므로 existsByIdAndStoreIdIn 결과는 false
+        when(reservationRepository.existsByIdAndStoreIdIn(reservationId, List.of(1L, 2L))).thenReturn(false);
+
+        // when & then
+        assertThatThrownBy(() -> service.updateReservationByAdmin(loginMember, reservationId, request))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(roomescape.common.exception.CommonErrorCode.NOT_FOUND);
+
+        verify(reservationRepository, never()).update(any(Long.class), any(Reservation.class));
+    }
+
+    @Test
+    @DisplayName("매니저 계정이 소유한 예약이지만 담당하지 않는 다른 매장으로 예약을 변경하려 하면 FORBIDDEN 예외를 던진다")
+    void updateReservationByAdmin_manager_fail_forbidden_store() {
+        // given
+        Long reservationId = 100L;
+        LocalDate newDate = LocalDate.of(2026, 5, 25);
+        ReservationUpdateRequest request = new ReservationUpdateRequest(3L, 2L, newDate, 2L); // 담당하지 않는 3L 매장으로 수정 요청
+
+        User managerUser = User.of(10L, "manager", "password", UserRole.MANAGER);
+        when(userRepository.findById(10L)).thenReturn(Optional.of(managerUser));
+
+        roomescape.domain.store.entity.Manager manager = new roomescape.domain.store.entity.Manager(20L, 10L, List.of(1L, 2L));
+        when(managerRepository.findByUserId(10L)).thenReturn(Optional.of(manager));
+
+        when(reservationRepository.existsByIdAndStoreIdIn(reservationId, List.of(1L, 2L))).thenReturn(true);
+
+        // when & then
+        assertThatThrownBy(() -> service.updateReservationByAdmin(loginMember, reservationId, request))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(roomescape.common.exception.CommonErrorCode.FORBIDDEN);
+    }
+
+    @Test
+    @DisplayName("매니저 계정이 소유하지 않은 예약을 삭제하려고 시도하면 404 Not Found(은폐) 예외를 던진다")
+    void deleteReservationByAdmin_manager_fail_notFound() {
+        // given
+        Long reservationId = 100L;
+
+        User managerUser = User.of(10L, "manager", "password", UserRole.MANAGER);
+        when(userRepository.findById(10L)).thenReturn(Optional.of(managerUser));
+
+        roomescape.domain.store.entity.Manager manager = new roomescape.domain.store.entity.Manager(20L, 10L, List.of(1L, 2L));
+        when(managerRepository.findByUserId(10L)).thenReturn(Optional.of(manager));
+
+        // 타인 매장 예약이므로 existsByIdAndStoreIdIn 결과는 false
+        when(reservationRepository.existsByIdAndStoreIdIn(reservationId, List.of(1L, 2L))).thenReturn(false);
+
+        // when & then
+        assertThatThrownBy(() -> service.deleteReservationByAdmin(loginMember, reservationId))
+                .isInstanceOf(BusinessException.class)
+                .extracting("errorCode")
+                .isEqualTo(roomescape.common.exception.CommonErrorCode.NOT_FOUND);
+
+        verify(reservationRepository, never()).deleteById(any(Long.class));
     }
 }

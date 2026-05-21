@@ -23,6 +23,12 @@ import roomescape.domain.store.repository.StoreRepository;
 import roomescape.domain.theme.entity.Theme;
 import roomescape.domain.theme.exception.ThemeErrorCode;
 import roomescape.domain.theme.repository.ThemeRepository;
+import roomescape.common.exception.CommonErrorCode;
+import roomescape.domain.store.entity.Manager;
+import roomescape.domain.store.repository.ManagerRepository;
+import roomescape.domain.user.entity.User;
+import roomescape.domain.user.entity.UserRole;
+import roomescape.domain.user.repository.UserRepository;
 
 @Service
 @Transactional(readOnly = true)
@@ -32,6 +38,8 @@ public class ReservationService {
     private final ReservationTimeRepository reservationTimeRepository;
     private final ThemeRepository themeRepository;
     private final StoreRepository storeRepository;
+    private final UserRepository userRepository;
+    private final ManagerRepository managerRepository;
     private final Clock clock;
 
     public ReservationService(
@@ -39,12 +47,16 @@ public class ReservationService {
             ReservationTimeRepository reservationTimeRepository,
             ThemeRepository themeRepository,
             StoreRepository storeRepository,
+            UserRepository userRepository,
+            ManagerRepository managerRepository,
             Clock clock
     ) {
         this.reservationRepository = reservationRepository;
         this.reservationTimeRepository = reservationTimeRepository;
         this.themeRepository = themeRepository;
         this.storeRepository = storeRepository;
+        this.userRepository = userRepository;
+        this.managerRepository = managerRepository;
         this.clock = clock;
     }
 
@@ -88,7 +100,9 @@ public class ReservationService {
     }
 
     @Transactional
-    public ReservationResponse saveReservationByAdmin(AdminReservationCreateRequest request) {
+    public ReservationResponse saveReservationByAdmin(LoginMember loginMember, AdminReservationCreateRequest request) {
+        checkStoreAccess(loginMember, request.storeId());
+
         Store store = findStoreByIdOrThrow(request.storeId());
         ReservationTime time = findTimeByIdOrThrow(request.timeId());
         Theme theme = findThemeByIdOrThrow(request.themeId());
@@ -121,7 +135,10 @@ public class ReservationService {
     }
 
     @Transactional
-    public ReservationResponse updateReservationByAdmin(Long id, ReservationUpdateRequest request) {
+    public ReservationResponse updateReservationByAdmin(LoginMember loginMember, Long id, ReservationUpdateRequest request) {
+        checkReservationAccess(loginMember, id);
+        checkStoreAccess(loginMember, request.storeId());
+
         Store store = findStoreByIdOrThrow(request.storeId());
         Reservation reservation = findReservationByIdOrThrow(id);
         Theme newTheme = findThemeByIdOrThrow(request.themeId());
@@ -144,7 +161,8 @@ public class ReservationService {
     }
 
     @Transactional
-    public void deleteReservationByAdmin(Long id) {
+    public void deleteReservationByAdmin(LoginMember loginMember, Long id) {
+        checkReservationAccess(loginMember, id);
         deleteByIdOrThrow(id);
     }
 
@@ -191,5 +209,52 @@ public class ReservationService {
         if (deletedCount == 0) {
             throw new BusinessException(ReservationErrorCode.RESERVATION_NOT_FOUND);
         }
+    }
+
+    private void checkStoreAccess(LoginMember loginMember, Long storeId) {
+        User user = userRepository.findById(loginMember.id())
+                .orElseThrow(() -> new BusinessException(CommonErrorCode.UNAUTHORIZED));
+
+        if (user.getRole() == UserRole.ADMIN) {
+            return;
+        }
+
+        if (user.getRole() == UserRole.MANAGER) {
+            Manager manager = managerRepository.findByUserId(user.getId())
+                    .orElseThrow(() -> new BusinessException(CommonErrorCode.FORBIDDEN));
+
+            if (storeId == null || !manager.manages(storeId)) {
+                throw new BusinessException(CommonErrorCode.FORBIDDEN);
+            }
+            return;
+        }
+
+        throw new BusinessException(CommonErrorCode.FORBIDDEN);
+    }
+
+    private void checkReservationAccess(LoginMember loginMember, Long reservationId) {
+        User user = userRepository.findById(loginMember.id())
+                .orElseThrow(() -> new BusinessException(CommonErrorCode.UNAUTHORIZED));
+
+        if (user.getRole() == UserRole.ADMIN) {
+            return;
+        }
+
+        if (user.getRole() == UserRole.MANAGER) {
+            Manager manager = managerRepository.findByUserId(user.getId())
+                    .orElseThrow(() -> new BusinessException(CommonErrorCode.FORBIDDEN));
+
+            if (reservationId == null) {
+                throw new BusinessException(CommonErrorCode.NOT_FOUND);
+            }
+
+            boolean hasAccess = reservationRepository.existsByIdAndStoreIdIn(reservationId, manager.getManagedStoreIds());
+            if (!hasAccess) {
+                throw new BusinessException(CommonErrorCode.NOT_FOUND);
+            }
+            return;
+        }
+
+        throw new BusinessException(CommonErrorCode.FORBIDDEN);
     }
 }

@@ -13,8 +13,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import roomescape.common.exception.BusinessException;
 import roomescape.common.exception.CommonErrorCode;
-import roomescape.common.web.CanAccessReservation;
-import roomescape.common.web.CanAccessStore;
 import roomescape.common.web.LoginMember;
 import roomescape.common.web.LoginUser;
 import roomescape.domain.reservation.request.AdminReservationCreateRequest;
@@ -65,27 +63,31 @@ public class AdminReservationController {
     }
 
     @PostMapping
-    @CanAccessStore
-    public ResponseEntity<ReservationResponse> save(@RequestBody @Valid AdminReservationCreateRequest request) {
-        ReservationResponse response = reservationService.saveReservationByAdmin(request);
+    public ResponseEntity<ReservationResponse> save(
+            @LoginUser LoginMember loginMember,
+            @RequestBody @Valid AdminReservationCreateRequest request
+    ) {
+        ReservationResponse response = reservationService.saveReservationByAdmin(loginMember, request);
         return ResponseEntity.created(URI.create("/reservations/" + response.id()))
                 .body(response);
     }
 
     @PatchMapping("/{reservationId}")
-    @CanAccessReservation
     public ResponseEntity<ReservationResponse> update(
+            @LoginUser LoginMember loginMember,
             @PathVariable Long reservationId,
             @RequestBody @Valid ReservationUpdateRequest request
     ) {
-        ReservationResponse response = reservationService.updateReservationByAdmin(reservationId, request);
+        ReservationResponse response = reservationService.updateReservationByAdmin(loginMember, reservationId, request);
         return ResponseEntity.ok(response);
     }
 
     @DeleteMapping("/{reservationId}")
-    @CanAccessReservation
-    public ResponseEntity<Void> deleteById(@PathVariable Long reservationId) {
-        reservationService.deleteReservationByAdmin(reservationId);
+    public ResponseEntity<Void> deleteById(
+            @LoginUser LoginMember loginMember,
+            @PathVariable Long reservationId
+    ) {
+        reservationService.deleteReservationByAdmin(loginMember, reservationId);
         return ResponseEntity.noContent().build();
     }
 }
