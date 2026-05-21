@@ -11,29 +11,61 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import roomescape.common.exception.BusinessException;
+import roomescape.common.exception.CommonErrorCode;
+import roomescape.common.web.CanAccessReservation;
+import roomescape.common.web.CanAccessStore;
+import roomescape.common.web.LoginMember;
+import roomescape.common.web.LoginUser;
 import roomescape.domain.reservation.request.AdminReservationCreateRequest;
 import roomescape.domain.reservation.request.ReservationUpdateRequest;
 import roomescape.domain.reservation.response.ReservationResponse;
 import roomescape.domain.reservation.response.ReservationsResponse;
 import roomescape.domain.reservation.service.ReservationService;
+import roomescape.domain.store.entity.Manager;
+import roomescape.domain.store.repository.ManagerRepository;
+import roomescape.domain.user.entity.User;
+import roomescape.domain.user.entity.UserRole;
+import roomescape.domain.user.repository.UserRepository;
 
 @RestController
 @RequestMapping("/admin/reservations")
 public class AdminReservationController {
 
     private final ReservationService reservationService;
+    private final UserRepository userRepository;
+    private final ManagerRepository managerRepository;
 
-    public AdminReservationController(ReservationService reservationService) {
+    public AdminReservationController(ReservationService reservationService,
+                                     UserRepository userRepository,
+                                     ManagerRepository managerRepository) {
         this.reservationService = reservationService;
+        this.userRepository = userRepository;
+        this.managerRepository = managerRepository;
     }
 
     @GetMapping
-    public ResponseEntity<ReservationsResponse> findAll() {
-        ReservationsResponse reservations = reservationService.findAllReservations();
-        return ResponseEntity.ok(reservations);
+    public ResponseEntity<ReservationsResponse> findAll(@LoginUser LoginMember loginMember) {
+        User user = userRepository.findById(loginMember.id())
+                .orElseThrow(() -> new BusinessException(CommonErrorCode.UNAUTHORIZED));
+
+        if (user.getRole() == UserRole.ADMIN) {
+            ReservationsResponse reservations = reservationService.findAllReservations();
+            return ResponseEntity.ok(reservations);
+        }
+
+        if (user.getRole() == UserRole.MANAGER) {
+            Manager manager = managerRepository.findByUserId(user.getId())
+                    .orElseThrow(() -> new BusinessException(CommonErrorCode.FORBIDDEN));
+            ReservationsResponse reservations = reservationService.findAllReservationsByStores(manager.getManagedStoreIds());
+            return ResponseEntity.ok(reservations);
+        }
+
+        throw new BusinessException(CommonErrorCode.FORBIDDEN);
     }
 
     @PostMapping
+    @CanAccessStore
     public ResponseEntity<ReservationResponse> save(@RequestBody @Valid AdminReservationCreateRequest request) {
         ReservationResponse response = reservationService.saveReservationByAdmin(request);
         return ResponseEntity.created(URI.create("/reservations/" + response.id()))
@@ -41,6 +73,7 @@ public class AdminReservationController {
     }
 
     @PatchMapping("/{reservationId}")
+    @CanAccessReservation
     public ResponseEntity<ReservationResponse> update(
             @PathVariable Long reservationId,
             @RequestBody @Valid ReservationUpdateRequest request
@@ -50,6 +83,7 @@ public class AdminReservationController {
     }
 
     @DeleteMapping("/{reservationId}")
+    @CanAccessReservation
     public ResponseEntity<Void> deleteById(@PathVariable Long reservationId) {
         reservationService.deleteReservationByAdmin(reservationId);
         return ResponseEntity.noContent().build();
